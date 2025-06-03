@@ -1,5 +1,6 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
+import {NiceTextInterface, NiceTextSettings, JQueryElement} from './types';
 import $ from 'jquery';
 
 /**
@@ -7,22 +8,26 @@ import $ from 'jquery';
  */
 export default Base.extend(
   {
-    $input: null,
-    $hint: null,
-    $stage: null,
-    $charsLeft: null,
-    autoHeight: null,
-    maxLength: null,
+    $input: null as JQueryElement | null,
+    $hint: null as JQueryElement | null,
+    $hintContainer: undefined as JQueryElement | undefined,
+    $stage: null as JQueryElement | null,
+    $charsLeft: null as JQueryElement | null,
+    autoHeight: null as boolean | null,
+    maxLength: null as number | null,
     showCharsLeft: false,
     showingHint: false,
-    val: null,
+    val: null as string | null,
     inputBoxSizing: 'content-box',
-    width: null,
-    height: null,
-    minHeight: null,
+    width: null as number | null,
+    height: null as number | null,
+    minHeight: null as number | null,
     initialized: false,
 
-    init: function (input, settings) {
+    init: function (
+      input: string | HTMLElement | JQueryElement,
+      settings?: NiceTextSettings
+    ): void {
       this.$input = $(input);
       this.settings = $.extend({}, Garnish.NiceText.defaults, settings);
 
@@ -33,11 +38,11 @@ export default Base.extend(
       }
     },
 
-    isVisible: function () {
-      return this.$input.height() > 0;
+    isVisible: function (): boolean {
+      return this.$input!.height()! > 0;
     },
 
-    initialize: function () {
+    initialize: function (): void {
       if (this.initialized) {
         return;
       }
@@ -45,64 +50,62 @@ export default Base.extend(
       this.initialized = true;
       this.removeListener(Garnish.$win, 'resize');
 
-      this.maxLength = this.$input.attr('maxlength');
-
-      if (this.maxLength) {
-        this.maxLength = parseInt(this.maxLength);
-      }
+      const maxLengthAttr = this.$input!.attr('maxlength');
+      this.maxLength = maxLengthAttr ? parseInt(maxLengthAttr) : null;
 
       if (
         this.maxLength &&
         (this.settings.showCharsLeft ||
-          Garnish.hasAttr(this.$input, 'data-show-chars-left'))
+          Garnish.hasAttr(this.$input!, 'data-show-chars-left'))
       ) {
         this.showCharsLeft = true;
 
         // Remove the maxlength attribute
-        this.$input.removeAttr('maxlength');
+        this.$input!.removeAttr('maxlength');
       }
 
       // Is this already a transparent text input?
-      if (this.$input.data('nicetext')) {
+      if (this.$input!.data('nicetext')) {
         console.warn(
           'Double-instantiating a transparent text input on an element'
         );
-        this.$input.data('nicetext').destroy();
+        this.$input!.data('nicetext').destroy();
       }
 
-      this.$input.data('nicetext', this);
+      this.$input!.data('nicetext', this);
 
       this.getVal();
 
       this.autoHeight =
-        this.settings.autoHeight && this.$input.prop('nodeName') === 'TEXTAREA';
+        this.settings.autoHeight &&
+        this.$input!.prop('nodeName') === 'TEXTAREA';
 
       if (this.autoHeight) {
         this.minHeight = this.getHeightForValue('');
         this.updateHeight();
 
         // Update height when the window resizes
-        this.width = this.$input.width();
+        this.width = this.$input!.width()!;
         this.addListener(Garnish.$win, 'resize', 'updateHeightIfWidthChanged');
       }
 
       if (this.settings.hint) {
         this.$hintContainer = $(
           '<div class="texthint-container"/>'
-        ).insertBefore(this.$input);
+        ).insertBefore(this.$input!);
         this.$hint = $(
           '<div class="texthint">' + this.settings.hint + '</div>'
         ).appendTo(this.$hintContainer);
         this.$hint.css({
           top:
-            parseInt(this.$input.css('borderTopWidth')) +
-            parseInt(this.$input.css('paddingTop')),
+            parseInt(this.$input!.css('borderTopWidth')) +
+            parseInt(this.$input!.css('paddingTop')),
           left:
-            parseInt(this.$input.css('borderLeftWidth')) +
-            parseInt(this.$input.css('paddingLeft')) +
+            parseInt(this.$input!.css('borderLeftWidth')) +
+            parseInt(this.$input!.css('paddingLeft')) +
             1,
         });
-        Garnish.copyTextStyles(this.$input, this.$hint);
+        Garnish.copyTextStyles(this.$input!, this.$hint);
 
         if (this.val) {
           this.$hint.hide();
@@ -111,10 +114,14 @@ export default Base.extend(
         }
 
         // Focus the input when clicking on the hint
-        this.addListener(this.$hint, 'mousedown', function (ev) {
-          ev.preventDefault();
-          this.$input.focus();
-        });
+        this.addListener(
+          this.$hint,
+          'mousedown',
+          (ev: JQuery.MouseDownEvent) => {
+            ev.preventDefault();
+            this.$input!.focus();
+          }
+        );
       }
 
       if (this.showCharsLeft) {
@@ -122,42 +129,42 @@ export default Base.extend(
           '<div aria-live="polite" class="' +
             this.settings.charsLeftClass +
             '"/>'
-        ).insertAfter(this.$input);
+        ).insertAfter(this.$input!);
         this.updateCharsLeft();
       }
 
-      this.addListener(this.$input, 'textchange', 'onTextChange');
-      this.addListener(this.$input, 'keydown', 'onKeyDown');
+      this.addListener(this.$input!, 'textchange', 'onTextChange');
+      this.addListener(this.$input!, 'keydown', 'onKeyDown');
     },
 
-    initializeIfVisible: function () {
+    initializeIfVisible: function (): void {
       if (this.isVisible()) {
         this.initialize();
       }
     },
 
-    getVal: function () {
-      this.val = this.$input.val();
+    getVal: function (): string {
+      this.val = this.$input!.val() as string;
       return this.val;
     },
 
-    showHint: function () {
-      this.$hint.velocity('fadeIn', {
+    showHint: function (): void {
+      this.$hint!.velocity('fadeIn', {
         complete: Garnish.NiceText.hintFadeDuration,
       });
 
       this.showingHint = true;
     },
 
-    hideHint: function () {
-      this.$hint.velocity('fadeOut', {
+    hideHint: function (): void {
+      this.$hint!.velocity('fadeOut', {
         complete: Garnish.NiceText.hintFadeDuration,
       });
 
       this.showingHint = false;
     },
 
-    onTextChange: function () {
+    onTextChange: function (): void {
       this.getVal();
 
       if (this.$hint) {
@@ -177,15 +184,15 @@ export default Base.extend(
       }
     },
 
-    onKeyDown: function (ev) {
+    onKeyDown: function (ev: JQuery.KeyDownEvent): void {
       // If Ctrl/Command + Return is pressed, submit the closest form
       if (ev.keyCode === Garnish.RETURN_KEY && Garnish.isCtrlKeyPressed(ev)) {
         ev.preventDefault();
-        this.$input.closest('form').submit();
+        this.$input!.closest('form').submit();
       }
     },
 
-    buildStage: function () {
+    buildStage: function (): void {
       this.$stage = $('<stage/>').appendTo(Garnish.$bod);
 
       // replicate the textarea's text styles
@@ -196,41 +203,41 @@ export default Base.extend(
         left: -9999,
       });
 
-      this.inputBoxSizing = this.$input.css('box-sizing');
+      this.inputBoxSizing = this.$input!.css('box-sizing');
 
       if (this.inputBoxSizing === 'border-box') {
         this.$stage.css({
-          'border-top': this.$input.css('border-top'),
-          'border-right': this.$input.css('border-right'),
-          'border-bottom': this.$input.css('border-bottom'),
-          'border-left': this.$input.css('border-left'),
-          'padding-top': this.$input.css('padding-top'),
-          'padding-right': this.$input.css('padding-right'),
-          'padding-bottom': this.$input.css('padding-bottom'),
-          'padding-left': this.$input.css('padding-left'),
+          'border-top': this.$input!.css('border-top'),
+          'border-right': this.$input!.css('border-right'),
+          'border-bottom': this.$input!.css('border-bottom'),
+          'border-left': this.$input!.css('border-left'),
+          'padding-top': this.$input!.css('padding-top'),
+          'padding-right': this.$input!.css('padding-right'),
+          'padding-bottom': this.$input!.css('padding-bottom'),
+          'padding-left': this.$input!.css('padding-left'),
           '-webkit-box-sizing': this.inputBoxSizing,
           '-moz-box-sizing': this.inputBoxSizing,
           'box-sizing': this.inputBoxSizing,
         });
       }
 
-      Garnish.copyTextStyles(this.$input, this.$stage);
+      Garnish.copyTextStyles(this.$input!, this.$stage);
     },
 
-    getHeightForValue: function (val) {
+    getHeightForValue: function (val: string): number {
       if (!this.$stage) {
         this.buildStage();
       }
 
       if (this.inputBoxSizing === 'border-box') {
-        this.$stage.css('width', this.$input.outerWidth());
+        this.$stage!.css('width', this.$input!.outerWidth());
       } else {
-        this.$stage.css('width', this.$input.width());
+        this.$stage!.css('width', this.$input!.width());
       }
 
       if (!val) {
         val = '&nbsp;';
-        for (var i = 1; i < this.$input.prop('rows'); i++) {
+        for (var i = 1; i < this.$input!.prop('rows'); i++) {
           val += '<br/>&nbsp;';
         }
       } else {
@@ -242,7 +249,7 @@ export default Base.extend(
         val = val.replace(/>/g, '&gt;');
 
         // Multiple spaces
-        val = val.replace(/ {2,}/g, function (spaces) {
+        val = val.replace(/ {2,}/g, function (spaces: string): string {
           // TODO: replace with String.repeat() when more broadly available?
           var replace = '';
           for (var i = 0; i < spaces.length - 1; i++) {
@@ -256,25 +263,28 @@ export default Base.extend(
         val = val.replace(/[\n\r]/g, '<br/>');
       }
 
-      this.$stage.html(val);
+      this.$stage!.html(val);
 
+      let height: number;
       if (this.inputBoxSizing === 'border-box') {
-        this.getHeightForValue._height = this.$stage.outerHeight();
+        height = this.$stage!.outerHeight()!;
       } else {
-        this.getHeightForValue._height = this.$stage.height();
+        height = this.$stage!.height()!;
       }
 
-      if (this.minHeight && this.getHeightForValue._height < this.minHeight) {
-        this.getHeightForValue._height = this.minHeight;
+      if (this.minHeight && height < this.minHeight) {
+        height = this.minHeight;
       }
 
-      return this.getHeightForValue._height;
+      return height;
     },
 
-    updateHeight: function () {
+    updateHeight: function (): void {
       // has the height changed?
-      if (this.height !== (this.height = this.getHeightForValue(this.val))) {
-        this.$input.css('min-height', this.height);
+      const newHeight = this.getHeightForValue(this.val!);
+      if (this.height !== newHeight) {
+        this.height = newHeight;
+        this.$input!.css('min-height', this.height);
 
         if (this.initialized) {
           this.onHeightChange();
@@ -282,38 +292,34 @@ export default Base.extend(
       }
     },
 
-    updateHeightIfWidthChanged: function () {
-      if (
-        this.isVisible() &&
-        this.width !== (this.width = this.$input.width()) &&
-        this.width
-      ) {
+    updateHeightIfWidthChanged: function (): void {
+      const newWidth = this.$input!.width()!;
+      if (this.isVisible() && this.width !== newWidth && newWidth) {
+        this.width = newWidth;
         this.updateHeight();
       }
     },
 
-    onHeightChange: function () {
-      this.settings.onHeightChange();
+    onHeightChange: function (): void {
+      this.settings.onHeightChange!();
     },
 
-    updateCharsLeft: function () {
-      this.updateCharsLeft._charsLeft = this.maxLength - this.val.length;
-      this.$charsLeft.html(
-        Garnish.NiceText.charsLeftHtml(this.updateCharsLeft._charsLeft)
-      );
+    updateCharsLeft: function (): void {
+      const charsLeft = this.maxLength! - this.val!.length;
+      this.$charsLeft!.html(Garnish.NiceText.charsLeftHtml(charsLeft));
 
-      if (this.updateCharsLeft._charsLeft >= 0) {
-        this.$charsLeft.removeClass(this.settings.negativeCharsLeftClass);
+      if (charsLeft >= 0) {
+        this.$charsLeft!.removeClass(this.settings.negativeCharsLeftClass!);
       } else {
-        this.$charsLeft.addClass(this.settings.negativeCharsLeftClass);
+        this.$charsLeft!.addClass(this.settings.negativeCharsLeftClass!);
       }
     },
 
     /**
      * Destroy
      */
-    destroy: function () {
-      this.$input.removeData('nicetext');
+    destroy: function (): void {
+      this.$input!.removeData('nicetext');
 
       if (this.$hint) {
         this.$hint.remove();
@@ -325,12 +331,12 @@ export default Base.extend(
 
       this.base();
     },
-  },
+  } as NiceTextInterface,
   {
     interval: 100,
     hintFadeDuration: 50,
-    charsLeftHtml: function (charsLeft) {
-      return charsLeft;
+    charsLeftHtml: function (charsLeft: number): string {
+      return charsLeft.toString();
     },
     defaults: {
       autoHeight: true,
@@ -338,6 +344,6 @@ export default Base.extend(
       charsLeftClass: 'chars-left',
       negativeCharsLeftClass: 'negative-chars-left',
       onHeightChange: $.noop,
-    },
+    } as NiceTextSettings,
   }
 );

@@ -1,5 +1,11 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
+import {
+  DisclosureMenuInterface,
+  DisclosureMenuSettings,
+  DisclosureMenuItem,
+  JQueryElement,
+} from './types';
 import $ from 'jquery';
 
 /**
@@ -7,35 +13,38 @@ import $ from 'jquery';
  */
 export default Base.extend(
   {
-    settings: null,
+    settings: null as DisclosureMenuSettings | null,
 
-    $trigger: null,
-    $container: null,
-    $alignmentElement: null,
-    $nextFocusableElement: null,
-    $searchInput: null,
+    $trigger: null as JQueryElement | null,
+    $container: null as JQueryElement | null,
+    $alignmentElement: null as JQueryElement | null,
+    $nextFocusableElement: null as JQueryElement | null,
+    $searchInput: null as JQueryElement | null,
 
-    _viewportWidth: null,
-    _viewportHeight: null,
-    _viewportScrollLeft: null,
-    _viewportScrollTop: null,
+    _viewportWidth: null as number | null,
+    _viewportHeight: null as number | null,
+    _viewportScrollLeft: null as number | null,
+    _viewportScrollTop: null as number | null,
 
-    _alignmentElementOffset: null,
-    _alignmentElementWidth: null,
-    _alignmentElementHeight: null,
-    _alignmentElementOffsetRight: null,
-    _alignmentElementOffsetBottom: null,
+    _alignmentElementOffset: null as JQuery.Coordinates | null,
+    _alignmentElementWidth: null as number | null,
+    _alignmentElementHeight: null as number | null,
+    _alignmentElementOffsetRight: null as number | null,
+    _alignmentElementOffsetBottom: null as number | null,
 
-    _menuWidth: null,
-    _menuHeight: null,
+    _menuWidth: null as number | null,
+    _menuHeight: null as number | null,
 
     searchStr: '',
-    clearSearchStrTimeout: null,
+    clearSearchStrTimeout: null as number | null,
 
     /**
      * Constructor
      */
-    init: function (trigger, settings) {
+    init: function (
+      trigger: string | HTMLElement | JQueryElement,
+      settings?: DisclosureMenuSettings
+    ): void {
       this.setSettings(settings, Garnish.DisclosureMenu.defaults);
 
       this.$trigger = $(trigger);
@@ -86,7 +95,7 @@ export default Base.extend(
       this.$container.appendTo(Garnish.$bod);
       // if trigger is in a slideout, we need to initialise UI elements
       if (this.$trigger.parents('.slideout').length > 0) {
-        Craft.initUiElements(this.$container);
+        (Craft as any).initUiElements(this.$container);
       }
       this.addDisclosureMenuEventListeners();
 
@@ -101,7 +110,7 @@ export default Base.extend(
       Garnish.DisclosureMenu.instances.push(this);
     },
 
-    addSearchInput: function () {
+    addSearchInput: function (): void {
       const $outerContainer = $('<div/>', {
         class: 'search-container',
       }).prependTo(this.$container);
@@ -113,16 +122,18 @@ export default Base.extend(
         type: 'text',
         inputmode: 'search',
         autocomplete: 'off',
-        placeholder: Craft.t('app', 'Search'),
+        placeholder: (Craft as any).t('app', 'Search'),
       }).appendTo($innerContainer);
       const $clearBtn = $('<div/>', {
         class: 'clear-btn hidden',
-        title: Craft.t('app', 'Clear'),
-        'aria-label': Craft.t('app', 'Clear'),
+        title: (Craft as any).t('app', 'Clear'),
+        'aria-label': (Craft as any).t('app', 'Clear'),
       }).appendTo($innerContainer);
 
-      this.$searchInput.on('input', (ev) => {
-        const val = this.$searchInput.val().toLowerCase().replace(/['"]/g, '');
+      this.$searchInput.on('input', (ev: JQuery.Event) => {
+        const val = (this.$searchInput!.val() as string)
+          .toLowerCase()
+          .replace(/['"]/g, '');
         const $options = this.$container.find('li');
 
         if (val) {
@@ -144,57 +155,73 @@ export default Base.extend(
         this.setContainerPosition();
       });
 
-      this.addListener(this.$searchInput, 'keydown', (ev) => {
-        switch (ev.keyCode) {
-          case Garnish.ESC_KEY:
-            this.$searchInput.val('').trigger('input');
-            break;
-          case Garnish.RETURN_KEY:
-            // they most likely don't want to submit the form from here
-            ev.preventDefault();
-            break;
+      this.addListener(
+        this.$searchInput,
+        'keydown',
+        (ev: JQuery.KeyDownEvent) => {
+          switch (ev.keyCode) {
+            case Garnish.ESC_KEY:
+              this.$searchInput!.val('').trigger('input');
+              break;
+            case Garnish.RETURN_KEY:
+              // they most likely don't want to submit the form from here
+              ev.preventDefault();
+              break;
+          }
         }
-      });
+      );
 
       this.addListener($clearBtn, 'click', () => {
-        this.$searchInput.val('').trigger('input').focus();
+        this.$searchInput!.val('').trigger('input').focus();
       });
     },
 
-    addDisclosureMenuEventListeners: function () {
-      this.addListener(this.$trigger, 'mousedown', (ev) => {
-        ev.stopPropagation();
-        ev.preventDefault();
+    addDisclosureMenuEventListeners: function (): void {
+      this.addListener(
+        this.$trigger,
+        'mousedown',
+        (ev: JQuery.MouseDownEvent) => {
+          ev.stopPropagation();
+          ev.preventDefault();
 
-        // Let the other disclosure menus know about it, at least
-        for (const disclosureMenu of Garnish.DisclosureMenu.instances) {
-          if (disclosureMenu !== this) {
-            disclosureMenu.handleMousedown(ev);
+          // Let the other disclosure menus know about it, at least
+          for (const disclosureMenu of Garnish.DisclosureMenu.instances) {
+            if (disclosureMenu !== this) {
+              disclosureMenu.handleMousedown(ev);
+            }
           }
         }
-      });
+      );
 
-      this.addListener(this.$trigger, 'mouseup', (ev) => {
+      this.addListener(this.$trigger, 'mouseup', (ev: JQuery.MouseUpEvent) => {
         ev.stopPropagation();
         ev.preventDefault();
       });
 
-      this.addListener(this.$trigger, 'click', (ev) => {
+      this.addListener(this.$trigger, 'click', (ev: JQuery.ClickEvent) => {
         ev.stopPropagation();
         ev.preventDefault();
         this.handleTriggerClick();
       });
 
-      this.addListener(this.$container, 'keydown', (ev) => {
-        this.handleKeypress(ev);
-      });
+      this.addListener(
+        this.$container,
+        'keydown',
+        (ev: JQuery.KeyDownEvent) => {
+          this.handleKeypress(ev);
+        }
+      );
 
-      this.addListener(Garnish.$doc, 'mousedown', (ev) => {
-        this.handleMousedown(ev);
-      });
+      this.addListener(
+        Garnish.$doc,
+        'mousedown',
+        (ev: JQuery.MouseDownEvent) => {
+          this.handleMousedown(ev);
+        }
+      );
 
       // When the menu is expanded, tabbing on the trigger should move focus into it
-      this.addListener(this.$trigger, 'keydown', (ev) => {
+      this.addListener(this.$trigger, 'keydown', (ev: JQuery.KeyDownEvent) => {
         if (
           ev.keyCode === Garnish.TAB_KEY &&
           !ev.shiftKey &&
@@ -209,8 +236,10 @@ export default Base.extend(
       });
     },
 
-    focusElement: function (component) {
-      if (component instanceof HTMLElement || component instanceof jQuery) {
+    focusElement: function (
+      component: 'prev' | 'next' | HTMLElement | JQueryElement
+    ): void {
+      if (component instanceof HTMLElement || component instanceof $) {
         let $component = $(component);
         if (!$component.is(':focusable')) {
           $component = $component.find(':focusable');
@@ -224,7 +253,7 @@ export default Base.extend(
       const focusable = this.$container.find(':focusable');
 
       const currentIndex = focusable.index(currentFocus);
-      let newIndex;
+      let newIndex: number;
 
       if (component === 'prev') {
         newIndex = currentIndex - 1;
@@ -238,12 +267,12 @@ export default Base.extend(
       }
     },
 
-    handleMousedown: function (event) {
+    handleMousedown: function (event: JQuery.Event): void {
       const newTarget = event.target;
       const triggerButton = $(newTarget).closest('[data-disclosure-trigger]');
       const newTargetIsInsideDisclosure =
         this.$container[0] === event.target ||
-        this.$container.has(newTarget).length > 0;
+        this.$container!.has(newTarget).length > 0;
 
       // If click target matches trigger element or disclosure child, do nothing
       if ($(triggerButton).is(this.$trigger) || newTargetIsInsideDisclosure) {
@@ -253,7 +282,7 @@ export default Base.extend(
       this.hide();
     },
 
-    handleKeypress: function (ev) {
+    handleKeypress: function (ev: JQuery.KeyDownEvent): void {
       if (Garnish.isCtrlKeyPressed(ev)) {
         return;
       }
@@ -277,7 +306,7 @@ export default Base.extend(
 
           if (index === 0 && ev.shiftKey) {
             ev.preventDefault();
-            this.$trigger.focus();
+            this.$trigger!.focus();
           } else if (
             index === $focusableElements.length - 1 &&
             !ev.shiftKey &&
@@ -295,7 +324,7 @@ export default Base.extend(
         (ev.key.match(/^[^ ]$/) || (this.searchStr.length && ev.key === ' '))
       ) {
         // show the menu and set visual focus to the first matching option
-        let $option;
+        let $option: JQueryElement | undefined;
 
         // see if there's a matching option
         this.searchStr += ev.key.toLowerCase();
@@ -328,12 +357,12 @@ export default Base.extend(
       }
     },
 
-    isExpanded: function () {
-      const isExpanded = this.$trigger.attr('aria-expanded');
+    isExpanded: function (): boolean {
+      const isExpanded = this.$trigger!.attr('aria-expanded');
       return isExpanded === 'true';
     },
 
-    handleTriggerClick: function () {
+    handleTriggerClick: function (): void {
       if (!this.isExpanded()) {
         this.show();
       } else {
@@ -341,8 +370,8 @@ export default Base.extend(
       }
     },
 
-    show: function () {
-      if (this.isExpanded() || this.$trigger.hasClass('disabled')) {
+    show: function (): void {
+      if (this.isExpanded() || this.$trigger!.hasClass('disabled')) {
         return;
       }
 
@@ -357,7 +386,7 @@ export default Base.extend(
         'scroll',
         'setContainerPosition'
       );
-      const $scrollParent = this.$trigger.scrollParent();
+      const $scrollParent = this.$trigger!.scrollParent();
       if ($scrollParent.get(0) !== document.body) {
         this.addListener($scrollParent, 'scroll', 'setContainerPosition');
       }
@@ -375,7 +404,7 @@ export default Base.extend(
       }
 
       // Set ARIA attribute for expanded
-      this.$trigger.attr('aria-expanded', 'true');
+      this.$trigger!.attr('aria-expanded', 'true');
 
       // Focus first focusable element
       const firstFocusableEl = this.$container.find(':focusable')[0];
@@ -389,18 +418,22 @@ export default Base.extend(
       // Find the next focusable element in the DOM after the trigger.
       // Shift-tabbing on it should take focus back into the container.
       const $focusableElements = Garnish.$bod.find(':focusable');
-      const triggerIndex = $focusableElements.index(this.$trigger[0]);
+      const triggerIndex = $focusableElements.index(this.$trigger![0]);
       if (triggerIndex !== -1 && $focusableElements.length > triggerIndex + 1) {
         this.$nextFocusableElement = $focusableElements.eq(triggerIndex + 1);
-        this.addListener(this.$nextFocusableElement, 'keydown', (ev) => {
-          if (ev.keyCode === Garnish.TAB_KEY && ev.shiftKey) {
-            const $focusableElement = this.$container.find(':focusable:last');
-            if ($focusableElement.length) {
-              ev.preventDefault();
-              $focusableElement.focus();
+        this.addListener(
+          this.$nextFocusableElement,
+          'keydown',
+          (ev: JQuery.KeyDownEvent) => {
+            if (ev.keyCode === Garnish.TAB_KEY && ev.shiftKey) {
+              const $focusableElement = this.$container.find(':focusable:last');
+              if ($focusableElement.length) {
+                ev.preventDefault();
+                $focusableElement.focus();
+              }
             }
           }
-        });
+        );
       }
 
       this.trigger('show');
@@ -408,23 +441,23 @@ export default Base.extend(
       Garnish.uiLayerManager.addLayer(this.$container);
       Garnish.uiLayerManager.registerShortcut(
         Garnish.ESC_KEY,
-        function () {
+        function (this: any) {
           this.hide();
         }.bind(this)
       );
     },
 
-    hide: function () {
+    hide: function (): void {
       if (!this.isExpanded()) {
         return;
       }
 
       this.$container.velocity('fadeOut', {duration: Garnish.FX_DURATION});
 
-      this.$trigger.attr('aria-expanded', 'false');
+      this.$trigger!.attr('aria-expanded', 'false');
 
       if (this.focusIsInMenu()) {
-        this.$trigger.focus();
+        this.$trigger!.focus();
       }
 
       if (this.$nextFocusableElement) {
@@ -443,7 +476,7 @@ export default Base.extend(
       Garnish.uiLayerManager.removeLayer(this.$container);
     },
 
-    focusIsInMenu: function () {
+    focusIsInMenu: function (): boolean {
       if (!this.$container.length) {
         return false;
       }
@@ -451,15 +484,15 @@ export default Base.extend(
       return $focusedEl.length && $.contains(this.$container[0], $focusedEl[0]);
     },
 
-    setContainerPosition: function () {
-      this._viewportWidth = Garnish.$win.width();
-      this._viewportHeight = Garnish.$win.height();
-      this._viewportScrollLeft = Garnish.$win.scrollLeft();
-      this._viewportScrollTop = Garnish.$win.scrollTop();
+    setContainerPosition: function (): void {
+      this._viewportWidth = Garnish.$win.width()!;
+      this._viewportHeight = Garnish.$win.height()!;
+      this._viewportScrollLeft = Garnish.$win.scrollLeft()!;
+      this._viewportScrollTop = Garnish.$win.scrollTop()!;
 
-      this._alignmentElementOffset = this.$alignmentElement.offset();
-      this._alignmentElementWidth = this.$alignmentElement.outerWidth();
-      this._alignmentElementHeight = this.$alignmentElement.outerHeight();
+      this._alignmentElementOffset = this.$alignmentElement!.offset()!;
+      this._alignmentElementWidth = this.$alignmentElement!.outerWidth()!;
+      this._alignmentElementHeight = this.$alignmentElement!.outerHeight()!;
       this._alignmentElementOffsetRight =
         this._alignmentElementOffset.left + this._alignmentElementWidth;
       this._alignmentElementOffsetBottom =
@@ -469,11 +502,11 @@ export default Base.extend(
       this.$container.css(
         'minWidth',
         this._alignmentElementWidth -
-          (this.$container.outerWidth() - this.$container.width())
+          (this.$container.outerWidth()! - this.$container.width()!)
       );
 
-      this._menuWidth = this.$container.outerWidth();
-      this._menuHeight = this.$container.outerHeight();
+      this._menuWidth = this.$container.outerWidth()!;
+      this._menuHeight = this.$container.outerHeight()!;
 
       if (this._menuWidth > this._viewportWidth) {
         this.$container.css('maxWidth', this._viewportWidth);
@@ -489,13 +522,13 @@ export default Base.extend(
         this._alignmentElementOffsetBottom;
 
       if (
-        this.settings.position === 'below' ||
+        this.settings!.position === 'below' ||
         bottomClearance >= this._menuHeight ||
         (topClearance < this._menuHeight && bottomClearance >= topClearance)
       ) {
         this.$container.css({
           top: this._alignmentElementOffsetBottom,
-          maxHeight: bottomClearance - this.settings.windowSpacing,
+          maxHeight: bottomClearance - this.settings!.windowSpacing!,
         });
       } else {
         this.$container.css({
@@ -503,9 +536,9 @@ export default Base.extend(
             this._alignmentElementOffset.top -
             Math.min(
               this._menuHeight,
-              topClearance - this.settings.windowSpacing
+              topClearance - this.settings!.windowSpacing!
             ),
-          maxHeight: topClearance - this.settings.windowSpacing,
+          maxHeight: topClearance - this.settings!.windowSpacing!,
         });
       }
 
@@ -552,7 +585,7 @@ export default Base.extend(
       delete this._menuHeight;
     },
 
-    clearSearchStr: function () {
+    clearSearchStr: function (): void {
       this.searchStr = '';
       if (this.clearSearchStrTimeout) {
         clearTimeout(this.clearSearchStrTimeout);
@@ -560,16 +593,18 @@ export default Base.extend(
       }
     },
 
-    isPadded: function (tag = 'ul') {
-      return this.$container.children(`${tag}.padded`).length;
+    isPadded: function (tag: string = 'ul'): boolean {
+      return this.$container.children(`${tag}.padded`).length > 0;
     },
 
-    createItem: function (item) {
-      if (item.nodeType === Node.ELEMENT_NODE) {
-        return item;
+    createItem: function (
+      item: DisclosureMenuItem | HTMLElement | JQueryElement
+    ): HTMLElement {
+      if (item instanceof Element && item.nodeType === Node.ELEMENT_NODE) {
+        return item as HTMLElement;
       }
 
-      if (item instanceof jQuery) {
+      if (item instanceof $) {
         return item[0];
       }
 
@@ -577,123 +612,127 @@ export default Base.extend(
         throw 'Unsupported item configuration.';
       }
 
-      let type;
-      if (item.type) {
-        type = item.type;
-      } else if (item.url) {
+      const menuItem = item as DisclosureMenuItem;
+
+      let type: string;
+      if (menuItem.type) {
+        type = menuItem.type;
+      } else if (menuItem.url) {
         type = 'link';
       } else {
         type = 'button';
       }
 
       const li = document.createElement('li');
-      const el = document.createElement(type === 'button' ? 'button' : 'a');
+      const el = document.createElement(type === 'button' ? 'button' : 'a') as
+        | HTMLButtonElement
+        | HTMLAnchorElement;
 
-      el.id = item.id || `menu-item-${Math.floor(Math.random() * 1000000)}`;
+      el.id = menuItem.id || `menu-item-${Math.floor(Math.random() * 1000000)}`;
       el.className = 'menu-item';
-      if (item.selected) {
+      if (menuItem.selected) {
         el.classList.add('sel');
       }
-      if (item.destructive) {
+      if (menuItem.destructive) {
         el.classList.add('error');
         el.setAttribute('data-destructive', 'true');
       }
-      if (item.disabled) {
+      if (menuItem.disabled) {
         el.classList.add('disabled');
       }
-      if (item.action) {
+      if (menuItem.action) {
         el.classList.add('formsubmit');
         $(el).formsubmit();
       }
       if (type === 'link') {
-        el.href = Craft.getUrl(item.url);
+        (el as HTMLAnchorElement).href = (Craft as any).getUrl(menuItem.url);
       }
-      if (item.icon) {
-        if (typeof item.icon === 'string') {
-          el.setAttribute('data-icon', item.icon);
-          if (item.iconColor) {
-            el.classList.add(item.iconColor);
+      if (menuItem.icon) {
+        if (typeof menuItem.icon === 'string') {
+          el.setAttribute('data-icon', menuItem.icon);
+          if (menuItem.iconColor) {
+            el.classList.add(menuItem.iconColor);
           }
         } else {
           (async () => {
-            let icon;
-            if (item.icon instanceof Element) {
-              icon = item.icon;
-            } else if (typeof item.icon === 'function') {
-              icon = await item.icon();
+            let icon: Element;
+            if (menuItem.icon instanceof Element) {
+              icon = menuItem.icon;
+            } else if (typeof menuItem.icon === 'function') {
+              icon = await menuItem.icon();
             } else {
               throw 'Unsupported icon type';
             }
             const span = document.createElement('span');
             span.className = 'icon';
-            if (item.iconColor) {
-              span.classList.add(item.iconColor);
+            if (menuItem.iconColor) {
+              span.classList.add(menuItem.iconColor);
             }
             span.append(icon);
             el.prepend(span);
           })();
         }
       }
-      if (item.action) {
-        el.setAttribute('data-action', item.action);
+      if (menuItem.action) {
+        el.setAttribute('data-action', menuItem.action);
         el.setAttribute('data-form', 'false');
       }
-      if (item.params) {
+      if (menuItem.params) {
         el.setAttribute(
           'data-params',
-          typeof item.params === 'string'
-            ? item.params
-            : JSON.stringify(item.params)
+          typeof menuItem.params === 'string'
+            ? menuItem.params
+            : JSON.stringify(menuItem.params)
         );
       }
-      if (item.confirm) {
-        el.setAttribute('data-confirm', item.confirm);
+      if (menuItem.confirm) {
+        el.setAttribute('data-confirm', menuItem.confirm);
       }
-      if (item.redirect) {
-        el.setAttribute('data-redirect', item.redirect);
+      if (menuItem.redirect) {
+        el.setAttribute('data-redirect', menuItem.redirect);
       }
-      if (item.attributes) {
-        for (let name in item.attributes) {
-          el.setAttribute(name, item.attributes[name]);
+      if (menuItem.attributes) {
+        for (let name in menuItem.attributes) {
+          el.setAttribute(name, menuItem.attributes[name]);
         }
       }
       li.append(el);
 
-      if (item.status) {
+      if (menuItem.status) {
         const status = document.createElement('div');
-        status.className = `status ${item.status}`;
+        status.className = `status ${menuItem.status}`;
         el.append(status);
       }
 
       const label = document.createElement('span');
       label.className = 'menu-item-label';
-      if (item.label) {
-        label.textContent = item.label;
-      } else if (item.html) {
-        label.innerHTML = item.html;
+      if (menuItem.label) {
+        label.textContent = menuItem.label;
+      } else if (menuItem.html) {
+        label.innerHTML = menuItem.html;
       }
       el.append(label);
 
-      if (item.description) {
+      if (menuItem.description) {
         const description = document.createElement('div');
         description.className = 'menu-item-description smalltext light';
-        description.textContent = item.description;
+        description.textContent = menuItem.description;
         el.append(description);
       }
 
       if (type === 'link') {
-        this.addListener(el, 'keydown', (ev) => {
+        this.addListener(el, 'keydown', (ev: JQuery.KeyDownEvent) => {
           if (ev.keyCode === Garnish.SPACE_KEY) {
-            el.click();
+            (el as HTMLElement).click();
           }
         });
       }
 
       this.addListener(el, 'activate', () => {
-        if (item.onActivate) {
-          item.onActivate();
-        } else if (item.callback) {
-          item.callback();
+        if (menuItem.onActivate) {
+          menuItem.onActivate();
+        } else if (menuItem.callback) {
+          menuItem.callback();
         }
         setTimeout(() => {
           this.hide();
@@ -703,7 +742,11 @@ export default Base.extend(
       return li;
     },
 
-    addItem: function (item, ul, prepend = false) {
+    addItem: function (
+      item: DisclosureMenuItem,
+      ul?: HTMLElement,
+      prepend: boolean = false
+    ): HTMLElement {
       const li = this.createItem(item);
 
       if (!ul) {
@@ -716,7 +759,7 @@ export default Base.extend(
         ul.append(li);
       }
 
-      const el = li.querySelector('a, button');
+      const el = li.querySelector('a, button') as HTMLElement;
 
       // show or hide it (show, in case the UL is already hidden)
       this.toggleItem(el, !item.hidden);
@@ -724,20 +767,20 @@ export default Base.extend(
       return el;
     },
 
-    addItems: function (items, ul) {
+    addItems: function (items: DisclosureMenuItem[], ul?: HTMLElement): void {
       for (const item of items) {
         this.addItem(item, ul);
       }
     },
 
-    addHr: function (before) {
+    addHr: function (before?: HTMLElement): HTMLElement {
       const hr = document.createElement('hr');
       if (this.isPadded('hr')) {
         hr.className = 'padded';
       }
 
       if (before) {
-        before.parentNode.insertBefore(hr, before);
+        before.parentNode!.insertBefore(hr, before);
       } else {
         this.$container.append(hr);
       }
@@ -745,13 +788,18 @@ export default Base.extend(
       return hr;
     },
 
-    getFirstDestructiveGroup: function () {
-      return this.$container
-        .children('ul:has([data-destructive]):first')
-        .get(0);
+    getFirstDestructiveGroup: function (): HTMLElement | null {
+      return (
+        this.$container.children('ul:has([data-destructive]):first').get(0) ||
+        null
+      );
     },
 
-    addGroup: function (heading = null, addHrs = true, before = null) {
+    addGroup: function (
+      heading: string | null = null,
+      addHrs: boolean = true,
+      before: HTMLElement | null = null
+    ): HTMLElement {
       const padded = this.isPadded();
 
       if (heading) {
@@ -762,7 +810,7 @@ export default Base.extend(
         h6.textContent = heading;
 
         if (before) {
-          before.parentNode.insertBefore(h6, before);
+          before.parentNode!.insertBefore(h6, before);
         } else {
           this.$container.append(h6);
         }
@@ -774,7 +822,7 @@ export default Base.extend(
       }
 
       if (before) {
-        before.parentNode.insertBefore(ul, before);
+        before.parentNode!.insertBefore(ul, before);
       } else {
         this.$container.append(ul);
       }
@@ -787,7 +835,7 @@ export default Base.extend(
           this.addHr(ul);
         }
         if (ul.nextElementSibling && ul.nextElementSibling !== 'HR') {
-          this.addHr(ul.nextElementSibling);
+          this.addHr(ul.nextElementSibling as HTMLElement);
         }
       }
 
@@ -796,9 +844,9 @@ export default Base.extend(
       return ul;
     },
 
-    toggleItem(el, show) {
+    toggleItem: function (el: HTMLElement, show?: boolean): void {
       if (typeof show === 'undefined') {
-        show = el.parentNode.classList.contains('hidden');
+        show = el.parentElement!.classList.contains('hidden');
       }
 
       if (show) {
@@ -808,10 +856,10 @@ export default Base.extend(
       }
     },
 
-    showItem(el) {
-      const li = el.parentNode;
+    showItem: function (el: HTMLElement): void {
+      const li = el.parentElement!;
       li.classList.remove('hidden');
-      const ul = li.parentNode;
+      const ul = li.parentElement!;
       if (ul.classList.contains('hidden')) {
         ul.classList.remove('hidden');
       }
@@ -823,10 +871,10 @@ export default Base.extend(
       }
     },
 
-    hideItem(el) {
-      const li = el.parentNode;
+    hideItem: function (el: HTMLElement): void {
+      const li = el.parentElement!;
       li.classList.add('hidden');
-      const ul = li.parentNode;
+      const ul = li.parentElement!;
       if (ul.querySelectorAll(':scope > li:not(.hidden)').length === 0) {
         ul.classList.add('hidden');
       }
@@ -838,9 +886,9 @@ export default Base.extend(
       }
     },
 
-    removeItem(el) {
-      const li = el.parentNode;
-      const ul = li.parentNode;
+    removeItem: function (el: HTMLElement): void {
+      const li = el.parentElement!;
+      const ul = li.parentElement!;
       li.remove();
       if (ul.querySelectorAll(':scope > li').length === 0) {
         ul.remove();
@@ -856,7 +904,7 @@ export default Base.extend(
       }
     },
 
-    updateHrVisibility() {
+    updateHrVisibility: function (): void {
       const $children = this.$container.children();
       let foundVisibleGroup = false;
       $children.each((i, child) => {
@@ -876,26 +924,26 @@ export default Base.extend(
     /**
      * Destroy
      */
-    destroy: function () {
-      this.$trigger.removeData('trigger');
+    destroy: function (): void {
+      this.$trigger!.removeData('trigger');
 
       Garnish.DisclosureMenu.instances =
-        Garnish.DisclosureMenu.instances.filter((o) => o !== this);
+        Garnish.DisclosureMenu.instances.filter((o: any) => o !== this);
 
       this.base();
     },
 
-    _alignLeft: function () {
+    _alignLeft: function (): void {
       this.$container.css({
-        left: Math.max(this._alignmentElementOffset.left, 0),
+        left: Math.max(this._alignmentElementOffset!.left, 0),
         right: 'auto',
       });
     },
 
-    _alignRight: function () {
+    _alignRight: function (): void {
       const right =
-        this._viewportWidth -
-        (this._alignmentElementOffset.left + this._alignmentElementWidth);
+        this._viewportWidth! -
+        (this._alignmentElementOffset!.left + this._alignmentElementWidth!);
 
       this.$container.css({
         right: Math.max(right, 0),
@@ -903,11 +951,11 @@ export default Base.extend(
       });
     },
 
-    _alignCenter: function () {
+    _alignCenter: function (): void {
       const left = Math.round(
-        this._alignmentElementOffset.left +
-          this._alignmentElementWidth / 2 -
-          this._menuWidth / 2
+        this._alignmentElementOffset!.left +
+          this._alignmentElementWidth! / 2 -
+          this._menuWidth! / 2
       );
 
       this.$container.css({
@@ -915,17 +963,17 @@ export default Base.extend(
         right: 'auto',
       });
     },
-  },
+  } as DisclosureMenuInterface,
   {
     defaults: {
       position: null,
       windowSpacing: 5,
       withSearchInput: false,
-    },
+    } as DisclosureMenuSettings,
 
     /**
-     * @type {Garnish.DisclosureMenu[]}
+     * @type {DisclosureMenuInterface[]}
      */
-    instances: [],
+    instances: [] as DisclosureMenuInterface[],
   }
 );

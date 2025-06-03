@@ -1,40 +1,215 @@
 import $ from 'jquery';
-import Base from './Base.js';
-import BaseDrag from './BaseDrag.js';
-import CheckboxSelect from './CheckboxSelect.js';
-import ContextMenu from './ContextMenu.js';
-import CustomSelect from './CustomSelect.js';
-import DisclosureMenu from './DisclosureMenu.js';
-import Drag from './Drag.js';
-import DragDrop from './DragDrop.js';
-import DragMove from './DragMove.js';
-import DragSort from './DragSort.js';
-import EscManager from './EscManager.js';
-import HUD from './HUD.js';
-import MenuBtn from './MenuBtn.js';
-import MixedInput from './MixedInput.js';
-import Modal from './Modal.js';
-import MultiFunctionBtn from './MultiFunctionBtn.js';
-import NiceText from './NiceText.js';
-import Select from './Select.js';
-import SelectMenu from './SelectMenu.js';
-import UiLayerManager from './UiLayerManager.js';
+import Base from './Base';
+import BaseDrag from './BaseDrag';
+import CheckboxSelect from './CheckboxSelect';
+import ContextMenu from './ContextMenu';
+import CustomSelect from './CustomSelect';
+import DisclosureMenu from './DisclosureMenu';
+import Drag from './Drag';
+import DragDrop from './DragDrop';
+import DragMove from './DragMove';
+import DragSort from './DragSort';
+import EscManager from './EscManager';
+import HUD from './HUD';
+import MenuBtn from './MenuBtn';
+import MixedInput from './MixedInput';
+import Modal from './Modal';
+import MultiFunctionBtn from './MultiFunctionBtn';
+import NiceText from './NiceText';
+import Select from './Select';
+import SelectMenu from './SelectMenu';
+import UiLayerManager from './UiLayerManager';
+import type {
+  GarnishEventHandler,
+  PostData,
+  Offset,
+  ElementOrJQuery,
+  JQueryElement,
+} from './types';
 
 /**
  * @namespace Garnish
  */
 
 // Bail if Garnish is already defined
-if (typeof Garnish !== 'undefined') {
+if (typeof (window as any).Garnish !== 'undefined') {
   throw 'Garnish is already defined!';
 }
 
-let Garnish = {
+interface GarnishStatic {
+  // jQuery objects for common elements
+  $win: JQuery;
+  $doc: JQuery;
+  $bod: JQuery;
+  $scrollContainer: JQuery;
+
+  // Boolean flags
+  rtl: boolean;
+  ltr: boolean;
+  activateEventsMuted: boolean;
+  resizeEventsMuted: boolean;
+
+  // Constants - Key codes
+  BACKSPACE_KEY: number;
+  TAB_KEY: number;
+  CLEAR_KEY: number;
+  RETURN_KEY: number;
+  SHIFT_KEY: number;
+  CTRL_KEY: number;
+  ALT_KEY: number;
+  ESC_KEY: number;
+  SPACE_KEY: number;
+  PAGE_UP_KEY: number;
+  PAGE_DOWN_KEY: number;
+  END_KEY: number;
+  HOME_KEY: number;
+  LEFT_KEY: number;
+  UP_KEY: number;
+  RIGHT_KEY: number;
+  DOWN_KEY: number;
+  DELETE_KEY: number;
+  A_KEY: number;
+  S_KEY: number;
+  CMD_KEY: number;
+  META_KEY: number;
+
+  // ARIA classes
+  JS_ARIA_CLASS: string;
+  JS_ARIA_TRUE_CLASS: string;
+  JS_ARIA_FALSE_CLASS: string;
+
+  // Mouse button constants
+  PRIMARY_CLICK: number;
+  SECONDARY_CLICK: number;
+
+  // Axis constants
+  X_AXIS: string;
+  Y_AXIS: string;
+
+  // Other constants
+  FX_DURATION: number;
+  TEXT_NODE: number;
+  SHAKE_STEPS: number;
+  SHAKE_STEP_DURATION: number;
+
+  // Private properties
+  _isMobileBrowser: boolean | null;
+  _isMobileOrTabletBrowser: boolean | null;
+  _eventHandlers: GarnishEventHandler[];
+
+  // Layer manager
+  uiLayerManager: any;
+
+  // Private methods
+  _normalizeEvents(events: string | string[]): string[][];
+
+  // Methods
+  log(msg: string): void;
+  isMobileBrowser(detectTablets?: boolean): boolean;
+  prefersReducedMotion(): boolean;
+  getUserPreferredAnimationDuration(duration: string | number): string | number;
+  isArray(val: any): val is any[];
+  isJquery(val: any): val is JQuery;
+  isString(val: any): val is string;
+  hasAttr(elem: ElementOrJQuery, attr: string): boolean;
+  isTextNode(elem: any): boolean;
+  getOffset(elem: ElementOrJQuery): Offset;
+  getDist(x1: number, y1: number, x2: number, y2: number): number;
+  hitTest(x: number, y: number, elem: ElementOrJQuery): boolean;
+  isCursorOver(ev: MouseEvent, elem: ElementOrJQuery): boolean;
+  copyTextStyles(source: ElementOrJQuery, target: ElementOrJQuery): void;
+  addModalAttributes(container: ElementOrJQuery): void;
+  hideModalBackgroundLayers(): void;
+  resetModalBackgroundLayerVisibility(): void;
+  ariaHide(element: ElementOrJQuery): void;
+  isScriptOrStyleElement(element: ElementOrJQuery): boolean;
+  hasJsAriaClass(element: ElementOrJQuery): boolean;
+  focusIsInside(container: ElementOrJQuery): boolean;
+  firstFocusableElement(container: ElementOrJQuery): JQuery;
+  getKeyboardFocusableElements(container: ElementOrJQuery): JQuery;
+  isKeyboardFocusable(element: ElementOrJQuery): boolean;
+  trapFocusWithin(container: ElementOrJQuery): void;
+  releaseFocusWithin(container: ElementOrJQuery): void;
+  setFocusWithin(container: ElementOrJQuery): void;
+  getFocusedElement(): JQuery;
+  handleActivatingKeypress(event: KeyboardEvent, callback: () => void): void;
+  getBodyScrollTop(): number;
+  requestAnimationFrame(fn: () => void): number;
+  cancelAnimationFrame(id: number): void;
+  scrollContainerToElement(
+    container: ElementOrJQuery,
+    elem?: ElementOrJQuery
+  ): void;
+  shake(elem: ElementOrJQuery, prop?: string): void;
+  getElement(elem: ElementOrJQuery | ElementOrJQuery[]): HTMLElement;
+  getInputBasename(elem: ElementOrJQuery): string | null;
+  getInputPostVal($input: JQuery): string | string[] | null;
+  findInputs(container: ElementOrJQuery): JQuery;
+  getPostData(container: ElementOrJQuery): PostData;
+  copyInputValues(source: ElementOrJQuery, target: ElementOrJQuery): void;
+  isPrimaryClick(ev: MouseEvent): boolean;
+  isCtrlKeyPressed(ev: KeyboardEvent): boolean;
+  on(
+    target: any,
+    events: string | string[],
+    data: any,
+    handler?: (event: any) => void
+  ): void;
+  on(
+    target: any,
+    events: string | string[],
+    handler: (event: any) => void
+  ): void;
+  off(
+    target: any,
+    events: string | string[],
+    handler: (event: any) => void
+  ): void;
+  once(
+    target: any,
+    events: string | string[],
+    data: any,
+    handler?: (event: any) => void
+  ): void;
+  once(
+    target: any,
+    events: string | string[],
+    handler: (event: any) => void
+  ): void;
+  muteResizeEvents(callback: () => void): void;
+  within(num: number, min: number, max: number): number;
+
+  // Component classes
+  Base: typeof Base;
+  BaseDrag: any;
+  CheckboxSelect: any;
+  ContextMenu: any;
+  CustomSelect: any;
+  DisclosureMenu: any;
+  Drag: any;
+  DragDrop: any;
+  DragMove: any;
+  DragSort: any;
+  EscManager: any;
+  HUD: any;
+  MenuBtn: any;
+  MixedInput: any;
+  Modal: any;
+  MultiFunctionBtn: any;
+  NiceText: any;
+  Select: any;
+  SelectMenu: any;
+  UiLayerManager: any;
+  Menu: any; // deprecated alias
+  ShortcutManager: any; // deprecated alias
+}
+
+let Garnish: GarnishStatic = {
   // jQuery objects for common elements
   $win: $(window),
   $doc: $(document),
   $bod: $(document.body),
-};
+} as GarnishStatic;
 
 Garnish.rtl = Garnish.$bod.hasClass('rtl');
 Garnish.ltr = !Garnish.rtl;
@@ -92,7 +267,7 @@ Garnish = $.extend(Garnish, {
    * @param {string} msg
    * @deprecated
    */
-  log: function (msg) {
+  log: function (msg: string): void {
     if (typeof console !== 'undefined' && typeof console.log === 'function') {
       console.log(msg);
     }
@@ -110,11 +285,12 @@ Garnish = $.extend(Garnish, {
    * @param {boolean} detectTablets
    * @return {boolean}
    */
-  isMobileBrowser: function (detectTablets) {
-    var key = detectTablets ? '_isMobileOrTabletBrowser' : '_isMobileBrowser';
+  isMobileBrowser: function (detectTablets?: boolean): boolean {
+    const key = detectTablets ? '_isMobileOrTabletBrowser' : '_isMobileBrowser';
 
     if (Garnish[key] === null) {
-      var a = navigator.userAgent || navigator.vendor || window.opera;
+      const a =
+        navigator.userAgent || navigator.vendor || (window as any).opera;
       Garnish[key] =
         new RegExp(
           '(android|bbd+|meego).+mobile|avantgo|bada/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)/|plucker|pocket|psp|series(4|6)0|symbian|treo|up.(browser|link)|vodafone|wap|windows ce|xda|xiino' +
@@ -126,7 +302,7 @@ Garnish = $.extend(Garnish, {
         );
     }
 
-    return Garnish[key];
+    return Garnish[key]!;
   },
 
   /**
@@ -134,7 +310,7 @@ Garnish = $.extend(Garnish, {
    *
    * @return {boolean}
    */
-  prefersReducedMotion: function () {
+  prefersReducedMotion: function (): boolean {
     // Grab the prefers reduced media query.
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -148,7 +324,9 @@ Garnish = $.extend(Garnish, {
    * @param {string|integer} duration Either a ms duration or a named jQuery duration (i.e. 'fast', 'slow')
    * @return {string|integer}
    */
-  getUserPreferredAnimationDuration: function (duration) {
+  getUserPreferredAnimationDuration: function (
+    duration: string | number
+  ): string | number {
     return Garnish.prefersReducedMotion() ? 0 : duration;
   },
 
@@ -159,7 +337,7 @@ Garnish = $.extend(Garnish, {
    * @return {boolean}
    * @deprecated
    */
-  isArray: function (val) {
+  isArray: function (val: any): val is any[] {
     return Array.isArray(val);
   },
 
@@ -169,7 +347,7 @@ Garnish = $.extend(Garnish, {
    * @param {object} val
    * @return {boolean}
    */
-  isJquery: function (val) {
+  isJquery: function (val: any): val is JQuery {
     return val instanceof $;
   },
 
@@ -179,7 +357,7 @@ Garnish = $.extend(Garnish, {
    * @param {object} val
    * @return {boolean}
    */
-  isString: function (val) {
+  isString: function (val: any): val is string {
     return typeof val === 'string';
   },
 
@@ -188,8 +366,8 @@ Garnish = $.extend(Garnish, {
    *
    * @see http://stackoverflow.com/questions/1318076/jquery-hasattr-checking-to-see-if-there-is-an-attribute-on-an-element/1318091#1318091
    */
-  hasAttr: function (elem, attr) {
-    var val = $(elem).attr(attr);
+  hasAttr: function (elem: ElementOrJQuery, attr: string): boolean {
+    const val = $(elem).attr(attr);
     return typeof val !== 'undefined' && val !== false;
   },
 
@@ -199,22 +377,22 @@ Garnish = $.extend(Garnish, {
    * @param {object} elem
    * @return {boolean}
    */
-  isTextNode: function (elem) {
+  isTextNode: function (elem: any): boolean {
     return elem.nodeType === Garnish.TEXT_NODE;
   },
 
   /**
    * Returns the offset of an element within the scroll container, whether that's the window or something else
    */
-  getOffset: function (elem) {
-    this.getOffset._offset = $(elem).offset();
+  getOffset: function (elem: ElementOrJQuery): Offset {
+    let offset = $(elem).offset()!;
 
     if (Garnish.$scrollContainer[0] !== Garnish.$win[0]) {
-      this.getOffset._offset.top += Garnish.$scrollContainer.scrollTop();
-      this.getOffset._offset.left += Garnish.$scrollContainer.scrollLeft();
+      offset.top += Garnish.$scrollContainer.scrollTop()!;
+      offset.left += Garnish.$scrollContainer.scrollLeft()!;
     }
 
-    return this.getOffset._offset;
+    return offset;
   },
 
   /**
@@ -226,7 +404,7 @@ Garnish = $.extend(Garnish, {
    * @param {number} y2 The second coordinate's Y position.
    * @return {number}
    */
-  getDist: function (x1, y1, x2, y2) {
+  getDist: function (x1: number, y1: number, x2: number, y2: number): number {
     return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
   },
 
@@ -238,22 +416,15 @@ Garnish = $.extend(Garnish, {
    * @param {object} elem Either an actual element or a jQuery collection.
    * @return {boolean}
    */
-  hitTest: function (x, y, elem) {
-    Garnish.hitTest._$elem = $(elem);
-    Garnish.hitTest._offset = Garnish.hitTest._$elem.offset();
-    Garnish.hitTest._x1 = Garnish.hitTest._offset.left;
-    Garnish.hitTest._y1 = Garnish.hitTest._offset.top;
-    Garnish.hitTest._x2 =
-      Garnish.hitTest._x1 + Garnish.hitTest._$elem.outerWidth();
-    Garnish.hitTest._y2 =
-      Garnish.hitTest._y1 + Garnish.hitTest._$elem.outerHeight();
+  hitTest: function (x: number, y: number, elem: ElementOrJQuery): boolean {
+    const $elem = $(elem);
+    const offset = $elem.offset()!;
+    const x1 = offset.left;
+    const y1 = offset.top;
+    const x2 = x1 + $elem.outerWidth()!;
+    const y2 = y1 + $elem.outerHeight()!;
 
-    return (
-      x >= Garnish.hitTest._x1 &&
-      x < Garnish.hitTest._x2 &&
-      y >= Garnish.hitTest._y1 &&
-      y < Garnish.hitTest._y2
-    );
+    return x >= x1 && x < x2 && y >= y1 && y < y2;
   },
 
   /**
@@ -263,7 +434,7 @@ Garnish = $.extend(Garnish, {
    * @param {object} elem Either an actual element or a jQuery collection.
    * @return {boolean}
    */
-  isCursorOver: function (ev, elem) {
+  isCursorOver: function (ev: MouseEvent, elem: ElementOrJQuery): boolean {
     return Garnish.hitTest(ev.pageX, ev.pageY, elem);
   },
 
@@ -273,9 +444,12 @@ Garnish = $.extend(Garnish, {
    * @param {object} source The source element. Can be either an actual element or a jQuery collection.
    * @param {object} target The target element. Can be either an actual element or a jQuery collection.
    */
-  copyTextStyles: function (source, target) {
-    var $source = $(source),
-      $target = $(target);
+  copyTextStyles: function (
+    source: ElementOrJQuery,
+    target: ElementOrJQuery
+  ): void {
+    const $source = $(source);
+    const $target = $(target);
 
     $target.css({
       fontFamily: $source.css('fontFamily'),
@@ -296,9 +470,7 @@ Garnish = $.extend(Garnish, {
    *
    * @param {object} container The container element. Can be either an actual element or a jQuery collection.
    */
-  addModalAttributes: function (container) {
-    const $container = $(container);
-
+  addModalAttributes: function (container: ElementOrJQuery): void {
     $(container).attr({
       'aria-modal': 'true',
       role: 'dialog',
@@ -309,13 +481,13 @@ Garnish = $.extend(Garnish, {
    * Hide immediate descendants of the body element from screen readers
    *
    */
-  hideModalBackgroundLayers: function () {
+  hideModalBackgroundLayers: function (): void {
     const topmostLayer = Garnish.uiLayerManager.currentLayer.$container.get(0);
 
     Garnish.$bod
       .children()
       .not('#notifications')
-      .each(function () {
+      .each(function (this: HTMLElement) {
         // If element is modal or already has jsAria class, do nothing
         if (Garnish.hasJsAriaClass(this) || this === topmostLayer) return;
 
@@ -329,7 +501,7 @@ Garnish = $.extend(Garnish, {
    * Un-hide elements based on currently active layers
    *
    */
-  resetModalBackgroundLayerVisibility: function () {
+  resetModalBackgroundLayerVisibility: function (): void {
     const highestModalLayer = Garnish.uiLayerManager.highestModalLayer;
     const hiddenLayerClasses = [
       Garnish.JS_ARIA_CLASS,
@@ -347,20 +519,20 @@ Garnish = $.extend(Garnish, {
 
     // If no more modals in DOM, loop through hidden elements and un-hide them
     const hiddenLayerSelector = hiddenLayerClasses
-      .map((name) => '.' + name)
+      .map((name: string) => '.' + name)
       .join(', ');
     const hiddenElements = $(hiddenLayerSelector);
 
-    $(hiddenElements).each(function () {
+    $(hiddenElements).each(function (this: HTMLElement) {
       if ($(this).hasClass(Garnish.JS_ARIA_CLASS)) {
         $(this).removeClass(Garnish.JS_ARIA_CLASS);
         $(this).removeAttr('aria-hidden');
       } else if ($(this).hasClass(Garnish.JS_ARIA_FALSE_CLASS)) {
         $(this).removeClass(Garnish.JS_ARIA_FALSE_CLASS);
-        $(this).attr('aria-hidden', false);
+        $(this).attr('aria-hidden', 'false');
       } else if ($(this).hasClass(Garnish.JS_ARIA_TRUE_CLASS)) {
         $(this).removeClass(Garnish.JS_ARIA_TRUE_CLASS);
-        $(this).attr('aria-hidden', true);
+        $(this).attr('aria-hidden', 'true');
       }
     });
   },
@@ -370,7 +542,7 @@ Garnish = $.extend(Garnish, {
    *
    * @param {object} element The element. Can be either an actual element or a jQuery collection.
    */
-  ariaHide: function (element) {
+  ariaHide: function (element: ElementOrJQuery): void {
     const ariaHiddenAttribute = $(element).attr('aria-hidden');
 
     // Capture initial aria-hidden values in an applied class
@@ -391,7 +563,7 @@ Garnish = $.extend(Garnish, {
    * @param {object} element The element. Can be either an actual element or a jQuery collection.
    * @return {boolean}
    */
-  isScriptOrStyleElement: function (element) {
+  isScriptOrStyleElement: function (element: ElementOrJQuery): boolean {
     return (
       $(element).prop('tagName') === 'SCRIPT' ||
       $(element).prop('tagName') === 'STYLE'
@@ -403,7 +575,7 @@ Garnish = $.extend(Garnish, {
    *
    * @param {object} element The element. Can be either an actual element or a jQuery collection.
    */
-  hasJsAriaClass: function (element) {
+  hasJsAriaClass: function (element: ElementOrJQuery): boolean {
     return (
       $(element).hasClass(Garnish.JS_ARIA_CLASS) ||
       $(element).hasClass(Garnish.JS_ARIA_FALSE_CLASS) ||
@@ -415,7 +587,7 @@ Garnish = $.extend(Garnish, {
    * Checks whether focus is inside a given container
    * @param {Object} container
    */
-  focusIsInside: function (container) {
+  focusIsInside: function (container: ElementOrJQuery): boolean {
     return $(container).find(':focus').length > 0;
   },
 
@@ -423,7 +595,7 @@ Garnish = $.extend(Garnish, {
    * Gets the first focusable element inside a container
    * @param {Object} container
    */
-  firstFocusableElement: function (container) {
+  firstFocusableElement: function (container: ElementOrJQuery): JQuery {
     return $(container).find(':focusable').first();
   },
 
@@ -432,11 +604,13 @@ Garnish = $.extend(Garnish, {
    * @param {object} container
    * @return {object} A collection of keyboard-focusable elements
    */
-  getKeyboardFocusableElements: function (container) {
+  getKeyboardFocusableElements: function (container: ElementOrJQuery): JQuery {
     const $focusable = $(container).find(':focusable');
-    const $keyboardFocusable = $focusable.filter((index, element) => {
-      return Garnish.isKeyboardFocusable(element);
-    });
+    const $keyboardFocusable = $focusable.filter(
+      (index: number, element: HTMLElement) => {
+        return Garnish.isKeyboardFocusable(element);
+      }
+    );
 
     return $keyboardFocusable;
   },
@@ -446,8 +620,8 @@ Garnish = $.extend(Garnish, {
    * @param {object} element
    * @return {boolean}
    */
-  isKeyboardFocusable: function (element) {
-    let keyboardFocusable;
+  isKeyboardFocusable: function (element: ElementOrJQuery): boolean {
+    let keyboardFocusable: boolean;
 
     if (!$(element).is(':focusable') || $(element).attr('tabindex') === '-1') {
       keyboardFocusable = false;
@@ -459,13 +633,13 @@ Garnish = $.extend(Garnish, {
   },
 
   /**
-   * Traps focus within a container, so when focus is tabbed out of it, it’s cycled back into it.
+   * Traps focus within a container, so when focus is tabbed out of it, it's cycled back into it.
    * @param {Object} container
    */
-  trapFocusWithin: function (container) {
+  trapFocusWithin: function (container: ElementOrJQuery): void {
     const $container = $(container);
-    this.releaseFocusWithin($container);
-    $container.on('keydown.focus-trap', function (ev) {
+    Garnish.releaseFocusWithin($container);
+    $container.on('keydown.focus-trap', function (ev: JQuery.KeyDownEvent) {
       if (ev.keyCode === Garnish.TAB_KEY) {
         const $focusableElements = $container.find(':focusable');
         const index = $focusableElements.index(ev.target);
@@ -490,7 +664,7 @@ Garnish = $.extend(Garnish, {
    * Releases focus within a container.
    * @param {Object} container
    */
-  releaseFocusWithin: function (container) {
+  releaseFocusWithin: function (container: ElementOrJQuery): void {
     $(container).off('.focus-trap');
   },
 
@@ -498,13 +672,13 @@ Garnish = $.extend(Garnish, {
    * Sets focus to the first focusable element within a container, or on the container itself.
    * @param {Object} container The container element. Can be either an actual element or a jQuery collection.
    */
-  setFocusWithin: function (container) {
+  setFocusWithin: function (container: ElementOrJQuery): void {
     const $container = $(container);
     if ($container.has(document.activeElement).length) {
       return;
     }
 
-    let $firstFocusable = $(container).find(
+    let $firstFocusable = $container.find(
       ':focusable:not(.checkbox):not(.prevent-autofocus):first'
     );
 
@@ -517,7 +691,7 @@ Garnish = $.extend(Garnish, {
       $container.find('.field:visible:first')[0] !==
       $firstFocusable.parents('.field')[0]
     ) {
-      $firstFocusable = [];
+      $firstFocusable = $();
     }
 
     if ($firstFocusable.length > 0) {
@@ -527,7 +701,7 @@ Garnish = $.extend(Garnish, {
     }
   },
 
-  getFocusedElement: function () {
+  getFocusedElement: function (): JQuery {
     return $(':focus');
   },
 
@@ -537,7 +711,10 @@ Garnish = $.extend(Garnish, {
    * @param {Object} callback The callback to perform if SPACE or ENTER keys are pressed on the non-semantic button
    * @deprecated The `activate` event should be used instead
    */
-  handleActivatingKeypress: function (event, callback) {
+  handleActivatingKeypress: function (
+    event: KeyboardEvent,
+    callback: () => void
+  ): void {
     const key = event.keyCode;
 
     if (key === Garnish.SPACE_KEY || key === Garnish.RETURN_KEY) {
@@ -551,49 +728,44 @@ Garnish = $.extend(Garnish, {
    *
    * @return {number}
    */
-  getBodyScrollTop: function () {
-    Garnish.getBodyScrollTop._scrollTop = document.body.scrollTop;
+  getBodyScrollTop: function (): number {
+    let scrollTop = document.body.scrollTop;
 
-    if (Garnish.getBodyScrollTop._scrollTop < 0) {
-      Garnish.getBodyScrollTop._scrollTop = 0;
+    if (scrollTop < 0) {
+      scrollTop = 0;
     } else {
-      Garnish.getBodyScrollTop._maxScrollTop =
-        Garnish.$bod.outerHeight() - Garnish.$win.height();
+      const maxScrollTop = Garnish.$bod.outerHeight()! - Garnish.$win.height()!;
 
-      if (
-        Garnish.getBodyScrollTop._scrollTop >
-        Garnish.getBodyScrollTop._maxScrollTop
-      ) {
-        Garnish.getBodyScrollTop._scrollTop =
-          Garnish.getBodyScrollTop._maxScrollTop;
+      if (scrollTop > maxScrollTop) {
+        scrollTop = maxScrollTop;
       }
     }
 
-    return Garnish.getBodyScrollTop._scrollTop;
+    return scrollTop;
   },
 
-  requestAnimationFrame: (function () {
-    var raf =
+  requestAnimationFrame: (function (): (fn: () => void) => number {
+    const raf =
       window.requestAnimationFrame ||
-      window.mozRequestAnimationFrame ||
-      window.webkitRequestAnimationFrame ||
-      function (fn) {
+      (window as any).mozRequestAnimationFrame ||
+      (window as any).webkitRequestAnimationFrame ||
+      function (fn: () => void): number {
         return window.setTimeout(fn, 20);
       };
 
-    return function (fn) {
+    return function (fn: () => void): number {
       return raf(fn);
     };
   })(),
 
-  cancelAnimationFrame: (function () {
-    var cancel =
+  cancelAnimationFrame: (function (): (id: number) => void {
+    const cancel =
       window.cancelAnimationFrame ||
-      window.mozCancelAnimationFrame ||
-      window.webkitCancelAnimationFrame ||
+      (window as any).mozCancelAnimationFrame ||
+      (window as any).webkitCancelAnimationFrame ||
       window.clearTimeout;
 
-    return function (id) {
+    return function (id: number): void {
       return cancel(id);
     };
   })(),
@@ -604,14 +776,18 @@ Garnish = $.extend(Garnish, {
    * @param {object} container Either an actual element or a jQuery collection.
    * @param {object} elem      Either an actual element or a jQuery collection.
    */
-  scrollContainerToElement: function (container, elem) {
-    var $elem;
+  scrollContainerToElement: function (
+    container: ElementOrJQuery,
+    elem?: ElementOrJQuery
+  ): void {
+    let $elem: JQuery;
+    let $container: JQuery;
 
     if (typeof elem === 'undefined') {
       $elem = $(container);
       $container = $elem.scrollParent();
     } else {
-      var $container = $(container);
+      $container = $(container);
       $elem = $(elem);
     }
 
@@ -622,28 +798,28 @@ Garnish = $.extend(Garnish, {
       $container = Garnish.$win;
     }
 
-    var scrollTop = $container.scrollTop(),
-      elemOffset = $elem.offset().top;
+    const scrollTop = $container.scrollTop()!;
+    const elemOffset = $elem.offset()!.top;
 
-    var elemScrollOffset;
+    let elemScrollOffset: number;
 
     if ($container[0] === window) {
       elemScrollOffset = elemOffset - scrollTop;
     } else {
-      elemScrollOffset = elemOffset - $container.offset().top;
+      elemScrollOffset = elemOffset - $container.offset()!.top;
     }
 
-    var targetScrollTop = false;
+    let targetScrollTop: number | false = false;
 
     // Is the element above the fold?
     if (elemScrollOffset < 0) {
       targetScrollTop = scrollTop + elemScrollOffset - 10;
     } else {
-      var elemHeight = $elem.outerHeight(),
-        containerHeight =
-          $container[0] === window
-            ? window.innerHeight
-            : $container[0].clientHeight;
+      const elemHeight = $elem.outerHeight()!;
+      const containerHeight =
+        $container[0] === window
+          ? window.innerHeight
+          : ($container[0] as HTMLElement).clientHeight;
 
       // Is it below the fold?
       if (elemScrollOffset + elemHeight > containerHeight) {
@@ -674,28 +850,24 @@ Garnish = $.extend(Garnish, {
    * @param {object}  elem Either an actual element or a jQuery collection.
    * @param {string} prop The property that should be adjusted (default is 'margin-left').
    */
-  shake: function (elem, prop) {
-    var $elem = $(elem);
+  shake: function (elem: ElementOrJQuery, prop?: string): void {
+    const $elem = $(elem);
 
     if (!prop) {
       prop = 'margin-left';
     }
 
-    var startingPoint = parseInt($elem.css(prop));
+    let startingPoint = parseInt($elem.css(prop));
     if (isNaN(startingPoint)) {
       startingPoint = 0;
     }
 
-    for (var i = 0; i <= Garnish.SHAKE_STEPS; i++) {
-      (function (i) {
+    for (let i = 0; i <= Garnish.SHAKE_STEPS; i++) {
+      (function (i: number) {
         setTimeout(function () {
-          Garnish.shake._properties = {};
-          Garnish.shake._properties[prop] =
-            startingPoint + (i % 2 ? -1 : 1) * (10 - i);
-          $elem.velocity(
-            Garnish.shake._properties,
-            Garnish.SHAKE_STEP_DURATION
-          );
+          const properties: {[key: string]: number} = {};
+          properties[prop!] = startingPoint + (i % 2 ? -1 : 1) * (10 - i);
+          $elem.velocity(properties, Garnish.SHAKE_STEP_DURATION);
         }, Garnish.SHAKE_STEP_DURATION * i);
       })(i);
     }
@@ -707,8 +879,10 @@ Garnish = $.extend(Garnish, {
    * @param {object} elem
    * @return mixed
    */
-  getElement: function (elem) {
-    return $.makeArray(elem)[0];
+  getElement: function (
+    elem: ElementOrJQuery | ElementOrJQuery[]
+  ): HTMLElement {
+    return $.makeArray(elem)[0] as HTMLElement;
   },
 
   /**
@@ -717,8 +891,8 @@ Garnish = $.extend(Garnish, {
    * @param {object} elem
    * @return string|null
    */
-  getInputBasename: function (elem) {
-    var name = $(elem).attr('name');
+  getInputBasename: function (elem: ElementOrJQuery): string | null {
+    const name = $(elem).attr('name');
 
     if (name) {
       return name.replace(/\[.*/, '');
@@ -735,21 +909,21 @@ Garnish = $.extend(Garnish, {
    * @param {object} $input
    * @return {(string|string[])}
    */
-  getInputPostVal: function ($input) {
+  getInputPostVal: function ($input: JQuery): string | string[] | null {
     const type = $input.attr('type');
     const val = $input.val();
 
     // Is this an unchecked checkbox or radio button?
     if (type === 'checkbox' || type === 'radio') {
       if ($input.prop('checked')) {
-        return val;
+        return val as string;
       }
       return null;
     }
 
     // Flatten any array values whose input name doesn't end in "[]"
     //  - e.g. a multi-select
-    if (Array.isArray(val) && $input.attr('name').slice(-2) !== '[]') {
+    if (Array.isArray(val) && $input.attr('name')!.slice(-2) !== '[]') {
       if (val.length) {
         return val[val.length - 1];
       }
@@ -763,7 +937,7 @@ Garnish = $.extend(Garnish, {
     }
 
     // Just return the value
-    return val;
+    return val as string | string[];
   },
 
   /**
@@ -772,7 +946,7 @@ Garnish = $.extend(Garnish, {
    * @param {object} container The container element. Can be either an actual element or a jQuery collection.
    * @return {object}
    */
-  findInputs: function (container) {
+  findInputs: function (container: ElementOrJQuery): JQuery {
     return $(container).find('input,text,textarea,select,button');
   },
 
@@ -782,12 +956,12 @@ Garnish = $.extend(Garnish, {
    * @param {object} container
    * @return {array}
    */
-  getPostData: function (container) {
-    const postData = {};
-    const arrayInputCounters = {};
+  getPostData: function (container: ElementOrJQuery): PostData {
+    const postData: PostData = {};
+    const arrayInputCounters: {[key: string]: number} = {};
     const $inputs = Garnish.findInputs(container);
 
-    let inputName;
+    let inputName: string;
 
     for (let i = 0; i < $inputs.length; i++) {
       const $input = $inputs.eq(i);
@@ -796,7 +970,7 @@ Garnish = $.extend(Garnish, {
         continue;
       }
 
-      inputName = $input.attr('name');
+      inputName = $input.attr('name')!;
       if (!inputName) {
         continue;
       }
@@ -807,7 +981,7 @@ Garnish = $.extend(Garnish, {
       }
 
       const isArrayInput = inputName.slice(-2) === '[]';
-      let croppedName;
+      let croppedName: string;
 
       if (isArrayInput) {
         // Get the cropped input name
@@ -825,8 +999,9 @@ Garnish = $.extend(Garnish, {
 
       for (let j = 0; j < inputVal.length; j++) {
         if (isArrayInput) {
-          inputName = croppedName + '[' + arrayInputCounters[croppedName] + ']';
-          arrayInputCounters[croppedName]++;
+          inputName =
+            croppedName! + '[' + arrayInputCounters[croppedName!] + ']';
+          arrayInputCounters[croppedName!]++;
         }
 
         postData[inputName] = inputVal[j];
@@ -836,18 +1011,21 @@ Garnish = $.extend(Garnish, {
     return postData;
   },
 
-  copyInputValues: function (source, target) {
-    var $sourceInputs = Garnish.findInputs(source),
-      $targetInputs = Garnish.findInputs(target);
+  copyInputValues: function (
+    source: ElementOrJQuery,
+    target: ElementOrJQuery
+  ): void {
+    const $sourceInputs = Garnish.findInputs(source);
+    const $targetInputs = Garnish.findInputs(target);
 
-    for (var i = 0; i < $sourceInputs.length; i++) {
+    for (let i = 0; i < $sourceInputs.length; i++) {
       if (typeof $targetInputs[i] === 'undefined') {
         break;
       }
 
       const $targetInput = $targetInputs.eq(i);
       if ($targetInput.attr('type') !== 'file') {
-        $targetInputs.eq(i).val($sourceInputs.eq(i).val());
+        $targetInputs.eq(i).val($sourceInputs.eq(i).val()!);
       }
     }
   },
@@ -858,8 +1036,8 @@ Garnish = $.extend(Garnish, {
    * @param ev The mouse event
    * @return {boolean}
    */
-  isPrimaryClick: function (ev) {
-    return ev.which === this.PRIMARY_CLICK && !ev.ctrlKey && !ev.metaKey;
+  isPrimaryClick: function (ev: MouseEvent): boolean {
+    return ev.which === Garnish.PRIMARY_CLICK && !ev.ctrlKey && !ev.metaKey;
   },
 
   /**
@@ -869,7 +1047,7 @@ Garnish = $.extend(Garnish, {
    *
    * @return {boolean} Whether the "Ctrl" key is pressed
    */
-  isCtrlKeyPressed: function (ev) {
+  isCtrlKeyPressed: function (ev: KeyboardEvent): boolean {
     if (window.navigator.platform.match(/Mac/)) {
       // metaKey maps to ⌘ on Macs
       return ev.metaKey;
@@ -879,21 +1057,29 @@ Garnish = $.extend(Garnish, {
 
   _eventHandlers: [],
 
-  _normalizeEvents: function (events) {
+  _normalizeEvents: function (events: string | string[]): string[][] {
     if (typeof events === 'string') {
       events = events.split(' ');
     }
 
-    for (var i = 0; i < events.length; i++) {
+    const normalizedEvents: string[][] = [];
+    for (let i = 0; i < events.length; i++) {
       if (typeof events[i] === 'string') {
-        events[i] = events[i].split('.');
+        normalizedEvents.push((events[i] as string).split('.'));
+      } else {
+        normalizedEvents.push(events[i] as unknown as string[]);
       }
     }
 
-    return events;
+    return normalizedEvents;
   },
 
-  on: function (target, events, data, handler) {
+  on: function (
+    target: any,
+    events: string | string[],
+    data?: any,
+    handler?: (event: any) => void
+  ): void {
     if (typeof target === 'undefined') {
       console.warn('Garnish.on() called for an invalid target class.');
       return;
@@ -904,28 +1090,32 @@ Garnish = $.extend(Garnish, {
       data = {};
     }
 
-    events = this._normalizeEvents(events);
+    const normalizedEvents = Garnish._normalizeEvents(events);
 
-    for (var i = 0; i < events.length; i++) {
-      var ev = events[i];
-      this._eventHandlers.push({
+    for (let i = 0; i < normalizedEvents.length; i++) {
+      const ev = normalizedEvents[i];
+      Garnish._eventHandlers.push({
         target: target,
         type: ev[0],
         namespace: ev[1],
         data: data,
-        handler: handler,
+        handler: handler!,
       });
     }
   },
 
-  off: function (target, events, handler) {
-    events = this._normalizeEvents(events);
+  off: function (
+    target: any,
+    events: string | string[],
+    handler: (event: any) => void
+  ): void {
+    const normalizedEvents = Garnish._normalizeEvents(events);
 
-    for (var i = 0; i < events.length; i++) {
-      var ev = events[i];
+    for (let i = 0; i < normalizedEvents.length; i++) {
+      const ev = normalizedEvents[i];
 
-      for (var j = this._eventHandlers.length - 1; j >= 0; j--) {
-        var eventHandler = this._eventHandlers[j];
+      for (let j = Garnish._eventHandlers.length - 1; j >= 0; j--) {
+        const eventHandler = Garnish._eventHandlers[j];
 
         if (
           eventHandler.target === target &&
@@ -933,13 +1123,18 @@ Garnish = $.extend(Garnish, {
           (!ev[1] || eventHandler.namespace === ev[1]) &&
           eventHandler.handler === handler
         ) {
-          this._eventHandlers.splice(j, 1);
+          Garnish._eventHandlers.splice(j, 1);
         }
       }
     }
   },
 
-  once: function (target, events, data, handler) {
+  once: function (
+    target: any,
+    events: string | string[],
+    data?: any,
+    handler?: (event: any) => void
+  ): void {
     if (typeof target === 'undefined') {
       console.warn('Garnish.once() called for an invalid target class.');
       return;
@@ -950,14 +1145,14 @@ Garnish = $.extend(Garnish, {
       data = {};
     }
 
-    const onceler = (event) => {
-      this.off(target, events, onceler);
-      handler(event);
+    const onceler = (event: any) => {
+      Garnish.off(target, events, onceler);
+      handler!(event);
     };
-    this.on(target, events, data, onceler);
+    Garnish.on(target, events, data, onceler);
   },
 
-  muteResizeEvents: function (callback) {
+  muteResizeEvents: function (callback: () => void): void {
     const resizeEventsMuted = Garnish.resizeEventsMuted;
     Garnish.resizeEventsMuted = true;
     callback();
@@ -971,11 +1166,36 @@ Garnish = $.extend(Garnish, {
    * @param {number} min
    * @param {number} max
    */
-  within: function (num, min, max) {
+  within: function (num: number, min: number, max: number): number {
     num = Math.max(num, min);
     num = Math.min(num, max);
     return num;
   },
+
+  // Component classes (will be assigned after declaration)
+  Base: null,
+  BaseDrag: null,
+  CheckboxSelect: null,
+  ContextMenu: null,
+  CustomSelect: null,
+  DisclosureMenu: null,
+  Drag: null,
+  DragDrop: null,
+  DragMove: null,
+  DragSort: null,
+  EscManager: null,
+  HUD: null,
+  MenuBtn: null,
+  MixedInput: null,
+  Modal: null,
+  MultiFunctionBtn: null,
+  NiceText: null,
+  Select: null,
+  SelectMenu: null,
+  UiLayerManager: null,
+  Menu: null, // deprecated alias
+  ShortcutManager: null, // deprecated alias
+  uiLayerManager: null,
 });
 
 Object.assign(Garnish, {
@@ -1012,14 +1232,14 @@ Object.assign(Garnish, {
 // Custom events
 // -----------------------------------------------------------------------------
 
-let resizeObserver;
+let resizeObserver: ResizeObserver | undefined;
 /**
  * @returns {ResizeObserver}
  */
-function getResizeObserver() {
+function getResizeObserver(): ResizeObserver {
   return (resizeObserver =
     resizeObserver ||
-    new ResizeObserver((entries) => {
+    new ResizeObserver((entries: ResizeObserverEntry[]) => {
       for (const entry of entries) {
         const size = $.data(entry.target, 'size');
         if (size) {
@@ -1038,20 +1258,25 @@ function getResizeObserver() {
 // Work them into jQuery's event system
 $.extend($.event.special, {
   activate: {
-    setup: function (data, namespaces, eventHandle) {
-      var $elem = $(this);
+    setup: function (
+      this: HTMLElement,
+      data: any,
+      namespaces: string[],
+      eventHandle: (event: Event) => void
+    ) {
+      const $elem = $(this);
 
       $elem.on({
-        'mousedown.garnish-activate': function (e) {
+        'mousedown.garnish-activate': function (e: JQuery.MouseDownEvent) {
           // Prevent buttons from getting focus on click
           if (
-            e.currentTarget.nodeName === 'BUTTON' ||
-            e.currentTarget.role === 'button'
+            (e.currentTarget as HTMLElement).nodeName === 'BUTTON' ||
+            (e.currentTarget as HTMLElement).getAttribute('role') === 'button'
           ) {
             e.preventDefault();
           }
         },
-        'click.garnish-activate': function (e) {
+        'click.garnish-activate': function (e: JQuery.ClickEvent) {
           // Ignore if activate events are muted
           if (Garnish.activateEventsMuted) {
             return;
@@ -1064,15 +1289,15 @@ $.extend($.event.special, {
             !disabled &&
             $elem.prop('nodeName') === 'A' &&
             Garnish.hasAttr($elem, 'href') &&
-            !['#', ''].includes($elem.attr('href')) &&
-            Garnish.isCtrlKeyPressed(e)
+            !['#', ''].includes($elem.attr('href')!) &&
+            Garnish.isCtrlKeyPressed(e as any)
           ) {
             return;
           }
 
           if (
-            e.currentTarget.nodeName === 'BUTTON' ||
-            e.currentTarget.role === 'button'
+            (e.currentTarget as HTMLElement).nodeName === 'BUTTON' ||
+            (e.currentTarget as HTMLElement).getAttribute('role') === 'button'
           ) {
             e.preventDefault();
           }
@@ -1084,19 +1309,19 @@ $.extend($.event.special, {
             });
           }
         },
-        'keydown.garnish-activate': function (e) {
+        'keydown.garnish-activate': function (e: JQuery.KeyDownEvent) {
           // Ignore if activate events are muted, or the event was bubbled up, or if it wasn't the Space/Return key
           if (
             Garnish.activateEventsMuted ||
             this !== $elem[0] ||
-            ![Garnish.SPACE_KEY, Garnish.RETURN_KEY].includes(e.keyCode)
+            ![Garnish.SPACE_KEY, Garnish.RETURN_KEY].includes(e.keyCode!)
           ) {
             return;
           }
 
           if (
-            e.currentTarget.nodeName === 'BUTTON' ||
-            e.currentTarget.role === 'button'
+            (e.currentTarget as HTMLElement).nodeName === 'BUTTON' ||
+            (e.currentTarget as HTMLElement).getAttribute('role') === 'button'
           ) {
             e.preventDefault();
           }
@@ -1116,19 +1341,24 @@ $.extend($.event.special, {
         $elem.removeAttr('tabindex');
       }
     },
-    teardown: function () {
+    teardown: function (this: HTMLElement) {
       $(this).off('.garnish-activate');
     },
   },
 
   textchange: {
-    setup: function (data, namespaces, eventHandle) {
-      var $elem = $(this);
+    setup: function (
+      this: HTMLElement,
+      data: any,
+      namespaces: string[],
+      eventHandle: (event: Event) => void
+    ) {
+      const $elem = $(this);
       $elem.data('garnish-textchange-value', $elem.val());
       $elem.on(
         'keypress.garnish-textchange keyup.garnish-textchange change.garnish-textchange blur.garnish-textchange',
-        function (e) {
-          var val = $elem.val();
+        function (e: JQuery.Event) {
+          const val = $elem.val();
           if (val !== $elem.data('garnish-textchange-value')) {
             $elem.data('garnish-textchange-value', val);
             $elem.trigger('textchange');
@@ -1136,15 +1366,15 @@ $.extend($.event.special, {
         }
       );
     },
-    teardown: function () {
+    teardown: function (this: HTMLElement) {
       $(this).off('.garnish-textchange');
     },
-    handle: function (ev, data) {
-      var el = this;
-      var args = arguments;
-      var delay = data?.delay ?? ev?.data?.delay ?? null;
-      var handleObj = ev.handleObj;
-      var targetData = $.data(ev.target);
+    handle: function (ev: any, data: any) {
+      const el = this;
+      const args = arguments;
+      const delay = data?.delay ?? ev?.data?.delay ?? null;
+      const handleObj = ev.handleObj;
+      const targetData = $.data(ev.target);
 
       // Was this event configured with a delay?
       if (delay) {
@@ -1162,33 +1392,44 @@ $.extend($.event.special, {
   },
 
   resize: {
-    setup: function (data, namespaces, eventHandle) {
+    setup: function (
+      this: HTMLElement | Window,
+      data: any,
+      namespaces: string[],
+      eventHandle: (event: Event) => void
+    ) {
       // window is the only element that natively supports a resize event
       if (this === window) {
         return false;
       }
 
-      const {width, height} = this.getBoundingClientRect();
+      const {width, height} = (this as HTMLElement).getBoundingClientRect();
       $.data(this, 'size', {width, height});
-      getResizeObserver().observe(this);
+      getResizeObserver().observe(this as HTMLElement);
     },
-    teardown: function () {
+    teardown: function (this: HTMLElement | Window) {
       if (this === window) {
         return false;
       }
 
-      getResizeObserver().unobserve(this);
+      getResizeObserver().unobserve(this as HTMLElement);
     },
   },
 });
 
 // Give them their own element collection chaining methods
-$.each(['activate', 'textchange', 'resize'], function (i, name) {
-  $.fn[name] = function (data, fn) {
-    return arguments.length > 0
-      ? this.on(name, null, data, fn)
-      : this.trigger(name);
-  };
-});
+$.each(
+  ['activate', 'textchange', 'resize'],
+  function (i: number, name: string) {
+    ($.fn as any)[name] = function (data?: any, fn?: (event: any) => void) {
+      return arguments.length > 0
+        ? this.on(name, null, data, fn)
+        : this.trigger(name);
+    };
+  }
+);
+
+// Make Garnish available globally
+(window as any).Garnish = Garnish;
 
 export default Garnish;

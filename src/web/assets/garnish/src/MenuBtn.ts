@@ -1,50 +1,61 @@
 /* jshint esversion: 6, strict: false */
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
 import $ from 'jquery';
+import {
+  ElementOrJQuery,
+  JQueryElement,
+  MenuBtnInterface,
+  MenuBtnSettings,
+} from './types';
 
 /**
  * Menu Button
  */
-export default Base.extend(
+export default Base.extend<MenuBtnInterface>(
   {
-    $btn: null,
-    menu: null,
+    $btn: null as JQueryElement | null,
+    menu: null as any,
     showingMenu: false,
     disabled: true,
-    observer: null,
+    observer: null as MutationObserver | null,
     searchStr: '',
-    clearSearchStrTimeout: null,
+    clearSearchStrTimeout: null as number | null,
 
     /**
      * Constructor
      */
-    init: function (btn, menu, settings) {
+    init: function (
+      btn: ElementOrJQuery,
+      menu?: any | MenuBtnSettings,
+      settings?: MenuBtnSettings
+    ): void {
       // Param mapping
       if (typeof settings === 'undefined' && $.isPlainObject(menu)) {
         // (btn, settings)
-        settings = menu;
+        settings = menu as MenuBtnSettings;
         menu = null;
       }
 
-      this.$btn = $(btn);
+      this.$btn = $(btn as any);
 
       if (!this.$btn.length) {
         console.warn('Menu button instantiated without a DOM element.');
         return;
       }
 
-      let $menu;
+      let $menu: JQueryElement | undefined;
 
       // Is this already a menu button?
-      if (this.$btn.data('menubtn')) {
+      const existingMenuBtn = this.$btn.data('menubtn') as MenuBtnInterface;
+      if (existingMenuBtn) {
         // Grab the old MenuBtn's menu container
         if (!menu) {
-          $menu = this.$btn.data('menubtn').menu.$container;
+          $menu = existingMenuBtn.menu.$container;
         }
 
         console.warn('Double-instantiating a menu button on an element');
-        this.$btn.data('menubtn').destroy();
+        existingMenuBtn.destroy();
       } else if (!menu) {
         $menu = this.$btn.next('.menu').detach();
       }
@@ -57,7 +68,7 @@ export default Base.extend(
       this.menu.$anchor = $(this.settings.menuAnchor || this.$btn);
       this.menu.on(
         'optionselect',
-        function (ev) {
+        function (this: MenuBtnInterface, ev: any) {
           this.onOptionSelect(ev.selectedOption);
         }.bind(this)
       );
@@ -87,7 +98,7 @@ export default Base.extend(
       this.addListener(this.$btn, 'keydown', 'onKeyDown');
       this.addListener(this.$btn, 'blur', 'onBlur');
 
-      this.observer = new MutationObserver((mutations) => {
+      this.observer = new MutationObserver((mutations: MutationRecord[]) => {
         for (const mutation of mutations) {
           if (
             mutation.type === 'attributes' &&
@@ -104,10 +115,10 @@ export default Base.extend(
       this.handleStatusChange();
     },
 
-    onBlur: function () {
+    onBlur: function (): void {
       if (this.showingMenu) {
         Garnish.requestAnimationFrame(
-          function () {
+          function (this: MenuBtnInterface) {
             if (
               !$.contains(this.menu.$container.get(0), document.activeElement)
             ) {
@@ -118,7 +129,7 @@ export default Base.extend(
       }
     },
 
-    onKeyDown: function (ev) {
+    onKeyDown: function (ev: JQuery.KeyDownEvent): void {
       if (Garnish.isCtrlKeyPressed(ev)) {
         return;
       }
@@ -129,7 +140,7 @@ export default Base.extend(
         (ev.key.match(/^[^ ]$/) || (this.searchStr.length && ev.key === ' '))
       ) {
         // show the menu and set visual focus to the first matching option
-        let $option;
+        let $option: JQueryElement | undefined;
 
         if (!this.showingMenu) {
           this.showMenu();
@@ -164,7 +175,7 @@ export default Base.extend(
         if (this.clearSearchStrTimeout) {
           clearTimeout(this.clearSearchStrTimeout);
         }
-        this.clearSearchStrTimeout = setTimeout(() => {
+        this.clearSearchStrTimeout = window.setTimeout(() => {
           this.clearSearchStr();
         }, 1000);
 
@@ -182,7 +193,7 @@ export default Base.extend(
             }
             const $currentOption = this.menu.$options.filter('.hover');
             if ($currentOption.length > 0) {
-              $currentOption.get(0).click();
+              ($currentOption.get(0) as HTMLElement).click();
             } else {
               this.hideMenu();
             }
@@ -253,7 +264,7 @@ export default Base.extend(
       }
     },
 
-    clearSearchStr: function () {
+    clearSearchStr: function (): void {
       this.searchStr = '';
       if (this.clearSearchStrTimeout) {
         clearTimeout(this.clearSearchStrTimeout);
@@ -261,7 +272,7 @@ export default Base.extend(
       }
     },
 
-    focusOption: function ($option) {
+    focusOption: function ($option: JQueryElement): void {
       if ($option.hasClass('hover')) {
         return;
       }
@@ -270,12 +281,12 @@ export default Base.extend(
       this.menu.$ariaOptions.attr('aria-selected', 'false');
 
       $option.addClass('hover');
-      this.$btn.attr('aria-activedescendant', $option.parent('li').attr('id'));
+      this.$btn!.attr('aria-activedescendant', $option.parent('li').attr('id'));
 
       Garnish.scrollContainerToElement(this.menu.$container, $option);
     },
 
-    focusSelectedOption: function () {
+    focusSelectedOption: function (): void {
       let $option = this.menu.$options.filter('.sel:first');
       if ($option.length) {
         this.focusOption($option);
@@ -284,20 +295,20 @@ export default Base.extend(
       }
     },
 
-    focusFirstOption: function () {
+    focusFirstOption: function (): void {
       const $option = this.menu.$options.first();
       this.focusOption($option);
     },
 
-    focusLastOption: function () {
+    focusLastOption: function (): void {
       const $option = this.menu.$options.last();
       this.focusOption($option);
     },
 
     /**
-     * @param {number} [dist=1]
+     * @param dist - Distance to move focus up (default: 1)
      */
-    moveFocusUp: function (dist) {
+    moveFocusUp: function (dist: number = 1): void {
       const $focusedOption = this.menu.$options.filter('.hover');
       if ($focusedOption.length) {
         const index = this.menu.$options.index($focusedOption[0]);
@@ -313,9 +324,9 @@ export default Base.extend(
     },
 
     /**
-     * @param {number} [dist=1]
+     * @param dist - Distance to move focus down (default: 1)
      */
-    moveFocusDown: function (dist) {
+    moveFocusDown: function (dist: number = 1): void {
       const $focusedOption = this.menu.$options.filter('.hover');
       if ($focusedOption.length) {
         const index = this.menu.$options.index($focusedOption[0]);
@@ -337,8 +348,11 @@ export default Base.extend(
       }
     },
 
-    onMouseDown: function (ev) {
-      if (!Garnish.isPrimaryClick(ev) || ev.target.nodeName === 'INPUT') {
+    onMouseDown: function (ev: JQuery.MouseDownEvent): void {
+      if (
+        !Garnish.isPrimaryClick(ev) ||
+        (ev.target as HTMLElement).nodeName === 'INPUT'
+      ) {
         return;
       }
 
@@ -351,33 +365,33 @@ export default Base.extend(
       }
     },
 
-    showMenu: function () {
+    showMenu: function (): void {
       if (this.disabled) {
         return;
       }
 
       this.menu.show();
-      this.$btn.addClass('active');
-      this.$btn.focus();
-      this.$btn.attr('aria-expanded', 'true');
+      this.$btn!.addClass('active');
+      this.$btn!.focus();
+      this.$btn!.attr('aria-expanded', 'true');
 
       this.showingMenu = true;
 
       setTimeout(
-        function () {
+        function (this: MenuBtnInterface) {
           this.addListener(Garnish.$doc, 'mousedown', 'onMouseDown');
         }.bind(this),
         1
       );
     },
 
-    hideMenu: function () {
+    hideMenu: function (): void {
       this.menu.hide();
     },
 
-    onMenuHide: function () {
-      this.$btn.removeClass('active');
-      this.$btn.attr({
+    onMenuHide: function (): void {
+      this.$btn!.removeClass('active');
+      this.$btn!.attr({
         'aria-expanded': 'false',
         'aria-activedescendant': null,
       });
@@ -386,12 +400,12 @@ export default Base.extend(
       this.removeListener(Garnish.$doc, 'mousedown');
     },
 
-    onOptionSelect: function (option) {
+    onOptionSelect: function (option: any): void {
       this.settings.onOptionSelect(option);
       this.trigger('optionSelect', {option: option});
     },
 
-    enable: function () {
+    enable: function (): void {
       if (!this.$btn) {
         return;
       }
@@ -399,7 +413,7 @@ export default Base.extend(
       this.$btn.removeAttr('disabled');
     },
 
-    disable: function () {
+    disable: function (): void {
       if (!this.$btn) {
         return;
       }
@@ -407,7 +421,7 @@ export default Base.extend(
       this.$btn.attr('disabled', 'disabled');
     },
 
-    handleStatusChange: function () {
+    handleStatusChange: function (): void {
       if (!this.$btn) {
         return;
       }
@@ -427,11 +441,13 @@ export default Base.extend(
     /**
      * Destroy
      */
-    destroy: function () {
+    destroy: function (): void {
       this.menu.destroy();
-      this.$btn.removeData('menubtn');
-      this.observer.disconnect();
-      this.observer = null;
+      this.$btn!.removeData('menubtn');
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
       this.base();
     },
   },
@@ -439,6 +455,6 @@ export default Base.extend(
     defaults: {
       menuAnchor: null,
       onOptionSelect: $.noop,
-    },
+    } as MenuBtnSettings,
   }
 );

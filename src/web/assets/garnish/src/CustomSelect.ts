@@ -1,41 +1,46 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
 import $ from 'jquery';
+import {
+  CustomSelectSettings,
+  CustomSelectInterface,
+  ElementOrJQuery,
+  JQueryElement,
+} from './types';
 
 /**
  * Custom Select Menu
  */
-export default Base.extend(
+const CustomSelect = Base.extend<CustomSelectInterface>(
   {
-    settings: null,
+    settings: null as any,
     visible: false,
-
-    $container: null,
-    $options: null,
-    $ariaOptions: null,
+    $container: null as any,
+    $options: null as any,
+    $ariaOptions: null as any,
     $anchor: null,
-
-    menuId: null,
-
+    menuId: null as any,
     _windowWidth: null,
     _windowHeight: null,
     _windowScrollLeft: null,
     _windowScrollTop: null,
-
     _anchorOffset: null,
     _anchorWidth: null,
     _anchorHeight: null,
     _anchorOffsetRight: null,
     _anchorOffsetBottom: null,
-
     _menuWidth: null,
     _menuHeight: null,
 
     /**
      * Constructor
      */
-    init: function (container, settings) {
-      this.setSettings(settings, Garnish.CustomSelect.defaults);
+    init: function (
+      this: CustomSelectInterface,
+      container: ElementOrJQuery,
+      settings?: CustomSelectSettings
+    ): void {
+      (this as any).setSettings(settings, (CustomSelect as any).defaults);
 
       this.$container = $(container);
 
@@ -43,7 +48,7 @@ export default Base.extend(
       this.$ariaOptions = $();
 
       // Menu List
-      this.menuId = 'menu' + this._namespace;
+      this.menuId = 'menu' + (this as any)._namespace;
       this.$container.attr({
         role: 'listbox',
         id: this.menuId,
@@ -65,17 +70,24 @@ export default Base.extend(
       }
 
       // Prevent clicking on the container from hiding the menu
-      this.addListener(this.$container, 'mousedown', function (ev) {
-        ev.stopPropagation();
+      (this as any).addListener(
+        this.$container,
+        'mousedown',
+        function (this: CustomSelectInterface, ev: JQuery.TriggeredEvent) {
+          ev.stopPropagation();
 
-        if (ev.target.nodeName !== 'INPUT') {
-          // Prevent this from causing the menu button to blur
-          ev.preventDefault();
+          if ((ev.target as HTMLElement).nodeName !== 'INPUT') {
+            // Prevent this from causing the menu button to blur
+            ev.preventDefault();
+          }
         }
-      });
+      );
     },
 
-    addOptions: function ($options) {
+    addOptions: function (
+      this: CustomSelectInterface,
+      $options: JQueryElement
+    ): void {
       this.$options = this.$options.add($options);
       $options.data('menu', this);
 
@@ -96,7 +108,7 @@ export default Base.extend(
         // keep aria-selected in-line with .sel
         $option.data(
           'menu-mutationObserver',
-          new MutationObserver((mutations) => {
+          new MutationObserver((mutations: MutationRecord[]) => {
             for (const mutation of mutations) {
               if (
                 mutation.type === 'attributes' &&
@@ -115,43 +127,48 @@ export default Base.extend(
             }
           })
         );
-        $option
-          .data('menu-mutationObserver')
-          .observe($option[0], {attributes: true});
+        ($option.data('menu-mutationObserver') as MutationObserver).observe(
+          $option[0],
+          {attributes: true}
+        );
       }
 
-      this.removeAllListeners($options);
-      this.addListener($options, 'click', function (ev) {
-        this.selectOption(ev.currentTarget);
-      });
+      (this as any).removeAllListeners($options);
+      (this as any).addListener(
+        $options,
+        'click',
+        function (this: CustomSelectInterface, ev: JQuery.TriggeredEvent) {
+          this.selectOption(ev.currentTarget as HTMLElement);
+        }
+      );
     },
 
-    setPositionRelativeToAnchor: function () {
-      this._windowWidth = Garnish.$win.width();
-      this._windowHeight = Garnish.$win.height();
-      this._windowScrollLeft = Garnish.$win.scrollLeft();
-      this._windowScrollTop = Garnish.$win.scrollTop();
+    updateMenuPosition: function (this: CustomSelectInterface): void {
+      this._windowWidth = Garnish.$win.width()!;
+      this._windowHeight = Garnish.$win.height()!;
+      this._windowScrollLeft = Garnish.$win.scrollLeft()!;
+      this._windowScrollTop = Garnish.$win.scrollTop()!;
 
-      this._anchorOffset = this.$anchor.offset();
-      this._anchorWidth = this.$anchor.outerWidth();
-      this._anchorHeight = this.$anchor.outerHeight();
-      this._anchorOffsetRight = this._anchorOffset.left + this._anchorHeight;
+      this._anchorOffset = this.$anchor!.offset()!;
+      this._anchorWidth = this.$anchor!.outerWidth()!;
+      this._anchorHeight = this.$anchor!.outerHeight()!;
+      this._anchorOffsetRight = this._anchorOffset.left + this._anchorWidth;
       this._anchorOffsetBottom = this._anchorOffset.top + this._anchorHeight;
 
       this.$container.css('minWidth', 0);
       this.$container.css(
         'minWidth',
         this._anchorWidth -
-          (this.$container.outerWidth() - this.$container.width())
+          (this.$container.outerWidth()! - this.$container.width()!)
       );
 
-      this._menuWidth = this.$container.outerWidth();
-      this._menuHeight = this.$container.outerHeight();
+      this._menuWidth = this.$container.outerWidth()!;
+      this._menuHeight = this.$container.outerHeight()!;
 
       // Is there room for the menu below the anchor?
-      var topClearance = this._anchorOffset.top - this._windowScrollTop,
-        bottomClearance =
-          this._windowHeight + this._windowScrollTop - this._anchorOffsetBottom;
+      const topClearance = this._anchorOffset.top - this._windowScrollTop;
+      const bottomClearance =
+        this._windowHeight + this._windowScrollTop - this._anchorOffsetBottom;
 
       if (
         bottomClearance >= this._menuHeight ||
@@ -159,7 +176,7 @@ export default Base.extend(
       ) {
         this.$container.css({
           top: this._anchorOffsetBottom,
-          maxHeight: bottomClearance - this.settings.windowSpacing,
+          maxHeight: bottomClearance - this.settings.windowSpacing!,
         });
       } else {
         this.$container.css({
@@ -167,14 +184,14 @@ export default Base.extend(
             this._anchorOffset.top -
             Math.min(
               this._menuHeight,
-              topClearance - this.settings.windowSpacing
+              topClearance - this.settings.windowSpacing!
             ),
-          maxHeight: topClearance - this.settings.windowSpacing,
+          maxHeight: topClearance - this.settings.windowSpacing!,
         });
       }
 
-      // Figure out how we're aliging it
-      var align = this.$container.data('align');
+      // Figure out how we're aligning it
+      let align = this.$container.data('align') as string;
 
       if (align !== 'left' && align !== 'center' && align !== 'right') {
         align = 'left';
@@ -184,11 +201,11 @@ export default Base.extend(
         this._alignCenter();
       } else {
         // Figure out which options are actually possible
-        var rightClearance =
-            this._windowWidth +
-            this._windowScrollLeft -
-            (this._anchorOffset.left + this._menuWidth),
-          leftClearance = this._anchorOffsetRight - this._menuWidth;
+        const rightClearance =
+          this._windowWidth +
+          this._windowScrollLeft -
+          (this._anchorOffset.left + this._menuWidth);
+        const leftClearance = this._anchorOffsetRight - this._menuWidth;
 
         if (
           ((align === 'right' && leftClearance >= 0) || rightClearance < 0) &&
@@ -213,7 +230,7 @@ export default Base.extend(
       delete this._menuHeight;
     },
 
-    show: function () {
+    show: function (this: CustomSelectInterface): void {
       if (this.visible) {
         return;
       }
@@ -222,7 +239,7 @@ export default Base.extend(
       this.$container.appendTo(Garnish.$bod);
 
       if (this.$anchor) {
-        this.setPositionRelativeToAnchor();
+        this.updateMenuPosition();
       }
 
       this.$container.velocity('stop');
@@ -235,18 +252,18 @@ export default Base.extend(
         .addLayer(this.$container)
         .registerShortcut(Garnish.ESC_KEY, this.hide.bind(this));
 
-      this.addListener(
+      (this as any).addListener(
         Garnish.$scrollContainer,
         'scroll',
-        'setPositionRelativeToAnchor'
+        'updateMenuPosition'
       );
-      this.addListener(Garnish.$win, 'resize', 'setPositionRelativeToAnchor');
+      (this as any).addListener(Garnish.$win, 'resize', 'updateMenuPosition');
 
       this.visible = true;
-      this.trigger('show');
+      (this as any).trigger('show');
     },
 
-    hide: function () {
+    hide: function (this: CustomSelectInterface): void {
       if (!this.visible) {
         return;
       }
@@ -263,68 +280,69 @@ export default Base.extend(
       );
 
       Garnish.uiLayerManager.removeLayer(this.$container);
-      this.removeListener(Garnish.$scrollContainer, 'scroll');
+      (this as any).removeListener(Garnish.$scrollContainer, 'scroll');
       this.visible = false;
-      this.trigger('hide');
+      (this as any).trigger('hide');
     },
 
-    selectOption: function (option) {
-      this.settings.onOptionSelect(option);
-      this.trigger('optionselect', {selectedOption: option});
+    selectOption: function (
+      this: CustomSelectInterface,
+      option: HTMLElement
+    ): void {
+      this.settings.onOptionSelect?.();
+      (this as any).trigger('optionselect', {selectedOption: option});
       this.hide();
     },
 
-    _alignLeft: function () {
+    _alignLeft: function (this: CustomSelectInterface): void {
       this.$container.css({
-        left: this._anchorOffset.left,
+        left: this._anchorOffset!.left,
         right: 'auto',
       });
 
       // if menuWidth is larger than the screen estate we have
       // - set max-width with a slight margin (10)
-      if (this._menuWidth > this._windowWidth - this._anchorOffset.left) {
+      if (this._menuWidth! > this._windowWidth! - this._anchorOffset!.left) {
         this.$container.css({
-          maxWidth: this._windowWidth - this._anchorOffset.left - 10,
+          maxWidth: this._windowWidth! - this._anchorOffset!.left - 10,
         });
       }
     },
 
-    _alignRight: function () {
+    _alignRight: function (this: CustomSelectInterface): void {
       this.$container.css({
         right:
-          this._windowWidth - (this._anchorOffset.left + this._anchorWidth),
+          this._windowWidth! - (this._anchorOffset!.left + this._anchorWidth!),
         left: 'auto',
       });
 
       // if menuWidth is larger than the screen estate we have
       // - set max-width with a slight margin (10)
-      if (this._menuWidth > this._anchorOffset.left + this._anchorWidth) {
+      if (this._menuWidth! > this._anchorOffset!.left + this._anchorWidth!) {
         this.$container.css({
-          maxWidth: this._anchorOffset.left + this._anchorWidth - 10,
+          maxWidth: this._anchorOffset!.left + this._anchorWidth! - 10,
         });
       }
     },
 
-    _alignCenter: function () {
-      var left = Math.round(
-        this._anchorOffset.left + this._anchorWidth / 2 - this._menuWidth / 2
+    _alignCenter: function (this: CustomSelectInterface): void {
+      const left = Math.round(
+        this._anchorOffset!.left + this._anchorWidth! / 2 - this._menuWidth! / 2
       );
 
-      if (left < 0) {
-        left = 0;
-      }
-
-      this.$container.css('left', left);
+      this.$container.css('left', Math.max(left, 0));
     },
 
-    destroy: function () {
+    destroy: function (this: CustomSelectInterface): void {
       for (let i = 0; i < this.$options.length; i++) {
         const $option = this.$options.eq(i);
-        $option.data('menu-mutationObserver').disconnect();
+        (
+          $option.data('menu-mutationObserver') as MutationObserver
+        ).disconnect();
         $option.removeData('menu-mutationObserver');
       }
 
-      this.base();
+      (this as any).base();
     },
   },
   {
@@ -332,6 +350,8 @@ export default Base.extend(
       anchor: null,
       windowSpacing: 5,
       onOptionSelect: $.noop,
-    },
+    } as CustomSelectSettings,
   }
 );
+
+export default CustomSelect;

@@ -1,33 +1,42 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
 import $ from 'jquery';
-import ResizeHandle from './icons/ResizeHandle.js';
+import ResizeHandle from './icons/ResizeHandle';
+import {
+  ElementOrJQuery,
+  JQueryElement,
+  ModalInterface,
+  ModalSettings,
+} from './types';
 
 /**
  * Modal
  */
-export default Base.extend(
+export default Base.extend<ModalInterface>(
   {
-    $container: null,
-    $shade: null,
-    $triggerElement: null,
+    $container: null as JQueryElement | null,
+    $shade: null as JQueryElement | null,
+    $triggerElement: null as JQueryElement | null,
     $liveRegion: $('<span class="visually-hidden" role="status"></span>'),
 
     visible: false,
 
-    dragger: null,
+    dragger: null as any,
 
-    desiredWidth: null,
-    desiredHeight: null,
-    resizeDragger: null,
-    resizeStartWidth: null,
-    resizeStartHeight: null,
+    desiredWidth: null as number | null,
+    desiredHeight: null as number | null,
+    resizeDragger: null as any,
+    resizeStartWidth: null as number | null,
+    resizeStartHeight: null as number | null,
 
-    init: function (container, settings) {
+    init: function (
+      container?: ElementOrJQuery | ModalSettings,
+      settings?: ModalSettings
+    ): void {
       // Param mapping
       if (typeof settings === 'undefined' && $.isPlainObject(container)) {
         // (settings)
-        settings = container;
+        settings = container as ModalSettings;
         container = null;
       }
 
@@ -38,14 +47,14 @@ export default Base.extend(
 
       // If the container is already set, drop the shade below it.
       if (container) {
-        this.$shade.insertBefore(container);
+        this.$shade.insertBefore(container as any);
       } else {
         this.$shade.appendTo(Garnish.$bod);
       }
 
       if (container) {
-        this.setContainer(container);
-        Garnish.addModalAttributes(container);
+        this.setContainer(container as ElementOrJQuery);
+        Garnish.addModalAttributes(container as any);
 
         if (this.settings.autoShow) {
           this.show();
@@ -53,27 +62,28 @@ export default Base.extend(
       }
 
       if (this.settings.triggerElement) {
-        this.$triggerElement = this.settings.triggerElement;
+        this.$triggerElement = $(this.settings.triggerElement as any);
       } else {
         this.$triggerElement = Garnish.getFocusedElement();
       }
 
-      Garnish.Modal.instances.push(this);
+      (Garnish.Modal as any).instances.push(this);
     },
 
-    addLiveRegion: function () {
+    addLiveRegion: function (): void {
       if (!this.$container) return;
 
       this.$liveRegion.appendTo(this.$container);
     },
 
-    setContainer: function (container) {
-      this.$container = $(container);
+    setContainer: function (container: ElementOrJQuery): void {
+      this.$container = $(container as any);
 
       // Is this already a modal?
-      if (this.$container.data('modal')) {
+      const existingModal = this.$container.data('modal') as ModalInterface;
+      if (existingModal) {
         console.warn('Double-instantiating a modal on an element');
-        this.$container.data('modal').destroy();
+        existingModal.destroy();
       }
 
       this.$container.data('modal', this);
@@ -87,7 +97,7 @@ export default Base.extend(
       }
 
       if (this.settings.resizable) {
-        var $resizeDragHandle = $('<div class="resizehandle"/>')
+        const $resizeDragHandle = $('<div class="resizehandle"/>')
           .appendTo(this.$container)
           .append(ResizeHandle);
 
@@ -99,9 +109,13 @@ export default Base.extend(
 
       this.addLiveRegion();
 
-      this.addListener(this.$container, 'click', function (ev) {
-        ev.stopPropagation();
-      });
+      this.addListener(
+        this.$container,
+        'click',
+        function (ev: JQuery.ClickEvent) {
+          ev.stopPropagation();
+        }
+      );
 
       // Show it if we're late to the party
       if (this.visible) {
@@ -109,31 +123,31 @@ export default Base.extend(
       }
     },
 
-    show: function () {
+    show: function (): void {
       // Close other modals as needed
       if (
         this.settings.closeOtherModals &&
-        Garnish.Modal.visibleModal &&
-        Garnish.Modal.visibleModal !== this
+        (Garnish.Modal as any).visibleModal &&
+        (Garnish.Modal as any).visibleModal !== this
       ) {
-        Garnish.Modal.visibleModal.hide();
+        (Garnish.Modal as any).visibleModal.hide();
       }
 
       if (this.$container) {
         // Move it to the end of <body> so it gets the highest sub-z-index
-        this.$shade.appendTo(Garnish.$bod).velocity('stop');
+        this.$shade!.appendTo(Garnish.$bod).velocity('stop');
         this.$container.appendTo(Garnish.$bod).velocity('stop');
 
         this.$container.show();
         this.updateSizeAndPosition();
 
-        this.$shade.velocity('fadeIn', {
+        this.$shade!.velocity('fadeIn', {
           duration: 50,
-          complete: function () {
-            this.$container.velocity('fadeIn', {
-              complete: function () {
+          complete: function (this: ModalInterface) {
+            this.$container!.velocity('fadeIn', {
+              complete: function (this: ModalInterface) {
                 this.updateSizeAndPosition();
-                Garnish.setFocusWithin(this.$container);
+                Garnish.setFocusWithin(this.$container!);
                 this.onFadeIn();
               }.bind(this),
             });
@@ -141,7 +155,7 @@ export default Base.extend(
         });
 
         if (this.settings.hideOnShadeClick) {
-          this.addListener(this.$shade, 'click', 'hide');
+          this.addListener(this.$shade!, 'click', 'hide');
         }
 
         // Add focus trap
@@ -154,9 +168,9 @@ export default Base.extend(
 
       if (!this.visible) {
         this.visible = true;
-        Garnish.Modal.visibleModal = this;
+        (Garnish.Modal as any).visibleModal = this;
 
-        Garnish.uiLayerManager.addLayer(this.$container);
+        Garnish.uiLayerManager.addLayer(this.$container!);
         Garnish.hideModalBackgroundLayers();
 
         if (this.settings.hideOnEsc) {
@@ -171,24 +185,24 @@ export default Base.extend(
       }
     },
 
-    onShow: function () {
+    onShow: function (): void {
       this.trigger('show');
       this.settings.onShow();
     },
 
-    quickShow: function () {
+    quickShow: function (): void {
       this.show();
 
       if (this.$container) {
         this.$container.velocity('stop');
         this.$container.show().css('opacity', 1);
 
-        this.$shade.velocity('stop');
-        this.$shade.show().css('opacity', 1);
+        this.$shade!.velocity('stop');
+        this.$shade!.show().css('opacity', 1);
       }
     },
 
-    hide: function (ev) {
+    hide: function (ev?: JQuery.Event): void {
       if (!this.visible) {
         return;
       }
@@ -203,13 +217,13 @@ export default Base.extend(
         this.$container
           .velocity('stop')
           .velocity('fadeOut', {duration: Garnish.FX_DURATION});
-        this.$shade.velocity('stop').velocity('fadeOut', {
+        this.$shade!.velocity('stop').velocity('fadeOut', {
           duration: Garnish.FX_DURATION,
           complete: this.onFadeOut.bind(this),
         });
 
         if (this.settings.hideOnShadeClick) {
-          this.removeListener(this.$shade, 'click');
+          this.removeListener(this.$shade!, 'click');
         }
 
         this.removeListener(Garnish.$win, 'resize');
@@ -234,32 +248,32 @@ export default Base.extend(
 
       this.visible = false;
       Garnish.$bod.removeClass('no-scroll');
-      Garnish.Modal.visibleModal = null;
+      (Garnish.Modal as any).visibleModal = null;
       Garnish.uiLayerManager.removeLayer();
       Garnish.resetModalBackgroundLayerVisibility();
       this.onHide();
     },
 
-    onHide: function () {
+    onHide: function (): void {
       this.trigger('hide');
       this.settings.onHide();
     },
 
-    quickHide: function () {
+    quickHide: function (): void {
       this.hide();
 
       if (this.$container) {
         this.$container.velocity('stop');
         this.$container.css('opacity', 0).hide();
 
-        this.$shade.velocity('stop');
-        this.$shade.css('opacity', 0).hide();
+        this.$shade!.velocity('stop');
+        this.$shade!.css('opacity', 0).hide();
 
         this.onFadeOut();
       }
     },
 
-    updateSizeAndPosition: function () {
+    updateSizeAndPosition: function (): void {
       if (!this.$container) {
         return;
       }
@@ -272,73 +286,73 @@ export default Base.extend(
       });
 
       // Set the width first so that the height can adjust for the width
-      this.updateSizeAndPosition._windowWidth = Garnish.$win.width();
-      this.updateSizeAndPosition._width = Math.min(
+      const windowWidth = Garnish.$win.width()!;
+      const width = Math.min(
         this.getWidth(),
-        this.updateSizeAndPosition._windowWidth - this.settings.minGutter * 2
+        windowWidth - this.settings.minGutter * 2
       );
 
       this.$container.css({
-        width: this.updateSizeAndPosition._width,
-        'min-width': this.updateSizeAndPosition._width,
-        left: Math.round(
-          (this.updateSizeAndPosition._windowWidth -
-            this.updateSizeAndPosition._width) /
-            2
-        ),
+        width: width,
+        'min-width': width,
+        left: Math.round((windowWidth - width) / 2),
       });
 
       // Now set the height
-      this.updateSizeAndPosition._windowHeight = Garnish.$win.height();
-      this.updateSizeAndPosition._height = Math.min(
+      const windowHeight = Garnish.$win.height()!;
+      const height = Math.min(
         this.getHeight(),
-        this.updateSizeAndPosition._windowHeight - this.settings.minGutter * 2
+        windowHeight - this.settings.minGutter * 2
       );
 
       this.$container.css({
-        height: this.updateSizeAndPosition._height,
-        'min-height': this.updateSizeAndPosition._height,
-        top: Math.round(
-          (this.updateSizeAndPosition._windowHeight -
-            this.updateSizeAndPosition._height) /
-            2
-        ),
+        height: height,
+        'min-height': height,
+        top: Math.round((windowHeight - height) / 2),
       });
 
       this.trigger('updateSizeAndPosition');
     },
 
-    onFadeIn: function () {
+    updateBodyHeight: function (): void {
+      // This method can be implemented by subclasses
+    },
+
+    onFadeIn: function (): void {
       this.trigger('fadeIn');
       this.settings.onFadeIn();
     },
 
-    onFadeOut: function () {
+    onFadeOut: function (): void {
       this.trigger('fadeOut');
       this.settings.onFadeOut();
     },
 
-    getHeight: function () {
+    getHeight: function (): number {
       if (!this.$container) {
-        throw 'Attempted to get the height of a modal whose container has not been set.';
+        throw new Error(
+          'Attempted to get the height of a modal whose container has not been set.'
+        );
       }
 
       if (!this.visible) {
         this.$container.show();
       }
 
-      this.getHeight._height = this.$container.outerHeight();
+      const height = this.$container.outerHeight()!;
 
       if (!this.visible) {
         this.$container.hide();
       }
 
-      return this.getHeight._height;
+      return height;
     },
 
-    getWidth: function () {
+    getWidth: function (): number {
       if (!this.$container) {
-        throw 'Attempted to get the width of a modal whose container has not been set.';
+        throw new Error(
+          'Attempted to get the width of a modal whose container has not been set.'
+        );
       }
 
       if (!this.visible) {
@@ -346,38 +360,38 @@ export default Base.extend(
       }
 
       // Chrome might be 1px shy here for some reason
-      this.getWidth._width = this.$container.outerWidth() + 1;
+      const width = this.$container.outerWidth()! + 1;
 
       if (!this.visible) {
         this.$container.hide();
       }
 
-      return this.getWidth._width;
+      return width;
     },
 
-    _handleWindowResize: function (ev) {
+    _handleWindowResize: function (ev: JQuery.ResizeEvent): void {
       // ignore propagated resize events
       if (ev.target === window) {
         this.updateSizeAndPosition();
       }
     },
 
-    _handleResizeStart: function () {
+    _handleResizeStart: function (): void {
       this.resizeStartWidth = this.getWidth();
       this.resizeStartHeight = this.getHeight();
     },
 
-    _handleResize: function () {
+    _handleResize: function (): void {
       if (Garnish.ltr) {
         this.desiredWidth =
-          this.resizeStartWidth + this.resizeDragger.mouseDistX * 2;
+          this.resizeStartWidth! + this.resizeDragger.mouseDistX * 2;
       } else {
         this.desiredWidth =
-          this.resizeStartWidth - this.resizeDragger.mouseDistX * 2;
+          this.resizeStartWidth! - this.resizeDragger.mouseDistX * 2;
       }
 
       this.desiredHeight =
-        this.resizeStartHeight + this.resizeDragger.mouseDistY * 2;
+        this.resizeStartHeight! + this.resizeDragger.mouseDistY * 2;
 
       this.updateSizeAndPosition();
     },
@@ -385,7 +399,7 @@ export default Base.extend(
     /**
      * Destroy
      */
-    destroy: function () {
+    destroy: function (): void {
       if (this.$container) {
         this.$container.removeData('modal').remove();
       }
@@ -402,9 +416,9 @@ export default Base.extend(
         this.resizeDragger.destroy();
       }
 
-      Garnish.Modal.instances = Garnish.Modal.instances.filter(
-        (o) => o !== this
-      );
+      (Garnish.Modal as any).instances = (
+        Garnish.Modal as any
+      ).instances.filter((o: ModalInterface) => o !== this);
 
       this.base();
     },
@@ -426,16 +440,16 @@ export default Base.extend(
       hideOnShadeClick: true,
       triggerElement: null,
       shadeClass: 'modal-shade',
-    },
+    } as ModalSettings,
 
     /**
-     * @type {Garnish.Modal[]}
+     * @type {ModalInterface[]}
      */
-    instances: [],
+    instances: [] as ModalInterface[],
 
     /**
-     * @type {?Garnish.Modal}
+     * @type {ModalInterface | null}
      */
-    visibleModal: null,
+    visibleModal: null as ModalInterface | null,
   }
 );

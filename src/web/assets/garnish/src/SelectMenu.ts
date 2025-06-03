@@ -1,16 +1,29 @@
-import Garnish from './Garnish.js';
-import CustomSelect from './CustomSelect.js';
+import Garnish from './Garnish';
+import CustomSelect from './CustomSelect';
 import $ from 'jquery';
+import {
+  ElementOrJQuery,
+  JQueryElement,
+  SelectMenuInterface,
+  SelectMenuSettings,
+} from './types';
 
 /**
  * Select Menu
  */
-export default CustomSelect.extend(
+export default CustomSelect.extend<SelectMenuInterface>(
   {
+    selected: -1,
+
     /**
      * Constructor
      */
-    init: function (btn, options, settings, callback) {
+    init: function (
+      btn: ElementOrJQuery,
+      options: any[],
+      settings?: SelectMenuSettings | (() => void),
+      callback?: () => void
+    ): void {
       // argument mapping
       if (typeof settings === 'function') {
         // (btn, options, callback)
@@ -18,9 +31,13 @@ export default CustomSelect.extend(
         settings = {};
       }
 
-      settings = $.extend({}, Garnish.SelectMenu.defaults, settings);
+      const mergedSettings = $.extend(
+        {},
+        Garnish.SelectMenu.defaults,
+        settings
+      );
 
-      this.base(btn, options, settings, callback);
+      this.base(btn, options, mergedSettings, callback);
 
       this.selected = -1;
     },
@@ -28,7 +45,7 @@ export default CustomSelect.extend(
     /**
      * Build
      */
-    build: function () {
+    build: function (): void {
       this.base();
 
       if (this.selected !== -1) {
@@ -39,7 +56,7 @@ export default CustomSelect.extend(
     /**
      * Select
      */
-    select: function (option) {
+    select: function (option: number): void {
       // ignore if it's already selected
       if (option === this.selected) {
         return;
@@ -47,7 +64,7 @@ export default CustomSelect.extend(
 
       if (this.dom.ul) {
         if (this.selected !== -1) {
-          this.dom.options[this.selected].className = '';
+          this.dom.options![this.selected].className = '';
         }
 
         this._addSelectedOptionClass(option);
@@ -56,7 +73,7 @@ export default CustomSelect.extend(
       this.selected = option;
 
       // set the button text to the selected option
-      this.setBtnText($(this.options[option].label).text());
+      this.setBtnText($((this as any).options[option].label).text());
 
       this.base(option);
     },
@@ -64,20 +81,20 @@ export default CustomSelect.extend(
     /**
      * Add Selected Option Class
      */
-    _addSelectedOptionClass: function (option) {
-      this.dom.options[option].className = 'sel';
+    _addSelectedOptionClass: function (option: number): void {
+      this.dom.options![option].className = 'sel';
     },
 
     /**
      * Set Button Text
      */
-    setBtnText: function (text) {
+    setBtnText: function (text: string): void {
       this.dom.$btnLabel.text(text);
     },
   },
   {
     defaults: {
       ulClass: 'menu select',
-    },
+    } as SelectMenuSettings,
   }
 );

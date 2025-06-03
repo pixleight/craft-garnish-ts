@@ -1,14 +1,20 @@
-import Garnish from './Garnish.js';
-import BaseDrag from './BaseDrag.js';
+import Garnish from './Garnish';
+import BaseDrag from './BaseDrag';
 import $ from 'jquery';
+import type {
+  DragInterface,
+  DragSettings,
+  JQueryElement,
+  ElementOrJQuery,
+} from './types';
 
 /**
  * Drag class
  *
- * Builds on the BaseDrag class by "picking up" the selceted element(s),
+ * Builds on the BaseDrag class by "picking up" the selected element(s),
  * without worrying about what to do when an element is being dragged.
  */
-export default BaseDrag.extend(
+export default BaseDrag.extend<DragInterface>(
   {
     targetItemWidth: null,
     targetItemHeight: null,
@@ -37,22 +43,22 @@ export default BaseDrag.extend(
      * @param {object} items    Elements that should be draggable right away. (Can be skipped.)
      * @param {object} settings Any settings that should override the defaults.
      */
-    init: function (items, settings) {
+    init(items?: ElementOrJQuery, settings?: DragSettings): void {
       // Param mapping
       if (typeof settings === 'undefined' && $.isPlainObject(items)) {
         // (settings)
-        settings = items;
-        items = null;
+        settings = items as DragSettings;
+        items = undefined;
       }
 
-      settings = $.extend({}, Garnish.Drag.defaults, settings);
+      settings = $.extend({}, (Garnish as any).Drag.defaults, settings);
       this.base(items, settings);
     },
 
     /**
      * Returns whether dragging is allowed right now.
      */
-    allowDragging: function () {
+    allowDragging(): boolean {
       // Don't allow dragging if we're in the middle of animating the helpers back to the draggees
       return !this._returningHelpersToDraggees;
     },
@@ -60,7 +66,7 @@ export default BaseDrag.extend(
     /**
      * Start Dragging
      */
-    startDragging: function () {
+    startDragging(): void {
       this.onBeforeDragStart();
 
       // Reset some things
@@ -70,11 +76,11 @@ export default BaseDrag.extend(
       this.lastMouseX = this.lastMouseY = null;
 
       // Capture the target item's width/height
-      this.targetItemWidth = this.$targetItem.outerWidth();
-      this.targetItemHeight = this.$targetItem.outerHeight();
+      this.targetItemWidth = this.$targetItem!.outerWidth()!;
+      this.targetItemHeight = this.$targetItem!.outerHeight()!;
 
       // Save the draggee's display style (block/table-row) so we can re-apply it later
-      this.draggeeDisplay = this.$targetItem.css('display');
+      this.draggeeDisplay = this.$targetItem!.css('display');
 
       // Set the $draggee
       this.setDraggee(this.findDraggee());
@@ -82,10 +88,10 @@ export default BaseDrag.extend(
       // Create an array of all the other items
       this.otherItems = [];
 
-      for (var i = 0; i < this.$items.length; i++) {
-        var item = this.$items[i];
+      for (let i = 0; i < this.$items!.length; i++) {
+        const item = this.$items![i];
 
-        if ($.inArray(item, this.$draggee) === -1) {
+        if ($.inArray(item, this.$draggee!.toArray()) === -1) {
           this.otherItems.push(item);
         }
       }
@@ -100,9 +106,9 @@ export default BaseDrag.extend(
       this.helperLagIncrement =
         this.helpers.length === 1
           ? 0
-          : this.settings.helperLagIncrementDividend /
+          : this.settings.helperLagIncrementDividend! /
             (this.helpers.length - 1);
-      this.updateHelperPosFrame = Garnish.requestAnimationFrame(
+      this.updateHelperPosFrame = (Garnish as any).requestAnimationFrame(
         this.updateHelperPosProxy
       );
 
@@ -111,29 +117,29 @@ export default BaseDrag.extend(
       this.onDragStart();
 
       // Mute activate events
-      Garnish.activateEventsMuted = true;
+      (Garnish as any).activateEventsMuted = true;
     },
 
     /**
      * Sets the draggee.
      */
-    setDraggee: function ($draggee) {
+    setDraggee($draggee: JQueryElement): void {
       // Record the target item's position in the draggee
       this.targetItemPositionInDraggee = $.inArray(
-        this.$targetItem[0],
-        $draggee.add(this.$targetItem[0])
+        this.$targetItem![0],
+        $draggee.add(this.$targetItem![0]).toArray()
       );
 
       // Keep the target item at the front of the list
       this.$draggee = $(
-        [this.$targetItem[0]].concat($draggee.not(this.$targetItem).toArray())
+        [this.$targetItem![0]].concat($draggee.not(this.$targetItem).toArray())
       );
 
       // Create the helper(s)
       if (this.settings.singleHelper) {
         this._createHelper(0);
       } else {
-        for (var i = 0; i < this.$draggee.length; i++) {
+        for (let i = 0; i < this.$draggee.length; i++) {
           this._createHelper(i);
         }
       }
@@ -141,7 +147,7 @@ export default BaseDrag.extend(
       if (this.settings.removeDraggee) {
         this.$draggee.hide();
       } else if (this.settings.collapseDraggees) {
-        this.$targetItem.css('visibility', 'hidden');
+        this.$targetItem!.css('visibility', 'hidden');
         this.$draggee.not(this.$targetItem).hide();
       } else if (this.settings.hideDraggee) {
         this.$draggee.css('visibility', 'hidden');
@@ -151,22 +157,23 @@ export default BaseDrag.extend(
     /**
      * Appends additional items to the draggee.
      */
-    appendDraggee: function ($newDraggee) {
+    appendDraggee($newDraggee: JQueryElement): void {
       if (!$newDraggee.length) {
         return;
       }
 
+      let oldLength: number;
       if (!this.settings.collapseDraggees) {
-        var oldLength = this.$draggee.length;
+        oldLength = this.$draggee!.length;
       }
 
-      this.$draggee = $(this.$draggee.toArray().concat($newDraggee.toArray()));
+      this.$draggee = $(this.$draggee!.toArray().concat($newDraggee.toArray()));
 
       // Create new helpers?
       if (!this.settings.collapseDraggees) {
-        var newLength = this.$draggee.length;
+        const newLength = this.$draggee.length;
 
-        for (var i = oldLength; i < newLength; i++) {
+        for (let i = oldLength!; i < newLength; i++) {
           this._createHelper(i);
         }
       }
@@ -181,12 +188,12 @@ export default BaseDrag.extend(
     /**
      * Drag
      */
-    drag: function (didMouseMove) {
+    drag(didMouseMove: boolean): void {
       // Update the draggee's virtual midpoint
       this.draggeeVirtualMidpointX =
-        this.mouseX - this.mouseOffsetX + this.targetItemWidth / 2;
+        this.mouseX! - this.mouseOffsetX! + this.targetItemWidth! / 2;
       this.draggeeVirtualMidpointY =
-        this.mouseY - this.mouseOffsetY + this.targetItemHeight / 2;
+        this.mouseY! - this.mouseOffsetY! + this.targetItemHeight! / 2;
 
       this.base(didMouseMove);
     },
@@ -194,9 +201,9 @@ export default BaseDrag.extend(
     /**
      * Stop Dragging
      */
-    stopDragging: function () {
+    stopDragging(): void {
       // Clear the helper animation
-      Garnish.cancelAnimationFrame(this.updateHelperPosFrame);
+      (Garnish as any).cancelAnimationFrame(this.updateHelperPosFrame);
 
       this.base();
     },
@@ -204,59 +211,59 @@ export default BaseDrag.extend(
     /**
      * Identifies the item(s) that are being dragged.
      */
-    findDraggee: function () {
+    findDraggee(): JQueryElement {
       switch (typeof this.settings.filter) {
         case 'function': {
           return this.settings.filter();
         }
 
         case 'string': {
-          return this.$items.filter(this.settings.filter);
+          return this.$items!.filter(this.settings.filter);
         }
 
         default: {
-          return this.$targetItem;
+          return this.$targetItem!;
         }
       }
     },
 
     /**
-     * Returns the helper’s target X position
+     * Returns the helper's target X position
      */
-    getHelperTargetX: function (real) {
+    getHelperTargetX(real?: boolean): number {
       if (!real && this.settings.moveHelperToCursor) {
-        return this.mouseX;
+        return this.mouseX!;
       }
-      return this.mouseX - this.mouseOffsetX;
+      return this.mouseX! - this.mouseOffsetX!;
     },
 
     /**
-     * Returns the helper’s target Y position
+     * Returns the helper's target Y position
      */
-    getHelperTargetY: function (real) {
+    getHelperTargetY(real?: boolean): number {
       if (!real && this.settings.moveHelperToCursor) {
-        return this.mouseY;
+        return this.mouseY!;
       }
-      return this.mouseY - this.mouseOffsetY;
+      return this.mouseY! - this.mouseOffsetY!;
     },
 
     /**
      * Return Helpers to Draggees
      */
-    returnHelpersToDraggees: function () {
+    returnHelpersToDraggees(): void {
       this._returningHelpersToDraggees = true;
 
-      for (var i = 0; i < this.helpers.length; i++) {
-        var $draggee = this.$draggee.eq(i),
-          $helper = this.helpers[i];
+      for (let i = 0; i < this.helpers!.length; i++) {
+        const $draggee = this.$draggee!.eq(i);
+        const $helper = this.helpers![i];
 
         $draggee.css({
-          display: this.draggeeDisplay,
+          display: this.draggeeDisplay!,
           visibility: this.settings.hideDraggee ? 'hidden' : '',
         });
 
-        var draggeeOffset = $draggee.offset();
-        var callback;
+        const draggeeOffset = $draggee.offset()!;
+        let callback: (() => void) | null;
 
         if (i === 0) {
           callback = this._showDraggee.bind(this);
@@ -264,9 +271,9 @@ export default BaseDrag.extend(
           callback = null;
         }
 
-        $helper.velocity(
+        ($helper as any).velocity(
           {left: draggeeOffset.left, top: draggeeOffset.top},
-          Garnish.FX_DURATION,
+          (Garnish as any).FX_DURATION,
           callback
         );
       }
@@ -275,11 +282,11 @@ export default BaseDrag.extend(
     // Events
     // ---------------------------------------------------------------------
 
-    onReturnHelpersToDraggees: function () {
-      Garnish.requestAnimationFrame(
-        function () {
+    onReturnHelpersToDraggees(): void {
+      (Garnish as any).requestAnimationFrame(
+        function (this: DragInterface) {
           this.trigger('returnHelpersToDraggees');
-          this.settings.onReturnHelpersToDraggees();
+          this.settings.onReturnHelpersToDraggees!();
         }.bind(this)
       );
     },
@@ -290,9 +297,9 @@ export default BaseDrag.extend(
     /**
      * Creates a helper.
      */
-    _createHelper: function (index) {
-      var $draggee = this.$draggee.eq(index),
-        $draggeeHelper = $draggee.clone().addClass('draghelper');
+    _createHelper(index: number): void {
+      const $draggee = this.$draggee!.eq(index);
+      let $draggeeHelper = $draggee.clone().addClass('draghelper');
 
       if ($draggee.parents('#content').length) {
         $draggeeHelper.addClass('drag-in-content');
@@ -302,15 +309,15 @@ export default BaseDrag.extend(
       }
 
       if (this.settings.copyDraggeeInputValuesToHelper) {
-        Garnish.copyInputValues($draggee, $draggeeHelper);
+        (Garnish as any).copyInputValues($draggee, $draggeeHelper);
       }
 
       // Remove any name= attributes so radio buttons don't lose their values
       $draggeeHelper.find('[name]').attr('name', '');
 
       $draggeeHelper
-        .outerWidth(Math.ceil($draggee.outerWidth()))
-        .outerHeight(Math.ceil($draggee.outerHeight()))
+        .outerWidth(Math.ceil($draggee.outerWidth()!))
+        .outerHeight(Math.ceil($draggee.outerHeight()!))
         .css({margin: 0, 'pointer-events': 'none'});
 
       if (this.settings.helper) {
@@ -321,7 +328,7 @@ export default BaseDrag.extend(
         }
       }
 
-      $draggeeHelper.appendTo(Garnish.$bod);
+      $draggeeHelper.appendTo((Garnish as any).$bod);
 
       const helperPos = this._getHelperTarget(index, true);
 
@@ -329,37 +336,31 @@ export default BaseDrag.extend(
         position: 'absolute',
         top: helperPos.top,
         left: helperPos.left,
-        zIndex: this.settings.helperBaseZindex + this.$draggee.length - index,
-        display: this.draggeeDisplay,
+        zIndex: this.settings.helperBaseZindex! + this.$draggee!.length - index,
+        display: this.draggeeDisplay!,
       });
 
       if (this.settings.helperOpacity != 1) {
         $draggeeHelper.css('opacity', this.settings.helperOpacity);
       }
 
-      this.helperPositions[index] = {
+      this.helperPositions![index] = {
         top: helperPos.top,
         left: helperPos.left,
       };
 
-      this.helpers.push($draggeeHelper);
+      this.helpers!.push($draggeeHelper);
     },
 
     /**
      * Update Helper Position
      */
-    _updateHelperPos: function () {
+    _updateHelperPos(): void {
       // Has the mouse moved?
       if (this.mouseX !== this.lastMouseX || this.mouseY !== this.lastMouseY) {
         // Get the new target helper positions
-        for (
-          this._updateHelperPos._i = 0;
-          this._updateHelperPos._i < this.helpers.length;
-          this._updateHelperPos._i++
-        ) {
-          this.helperTargets[this._updateHelperPos._i] = this._getHelperTarget(
-            this._updateHelperPos._i
-          );
+        for (let i = 0; i < this.helpers!.length; i++) {
+          this.helperTargets![i] = this._getHelperTarget(i);
         }
 
         this.lastMouseX = this.mouseX;
@@ -367,59 +368,51 @@ export default BaseDrag.extend(
       }
 
       // Gravitate helpers toward their target positions
-      for (
-        this._updateHelperPos._j = 0;
-        this._updateHelperPos._j < this.helpers.length;
-        this._updateHelperPos._j++
-      ) {
-        this._updateHelperPos._lag =
-          this.settings.helperLagBase +
-          this.helperLagIncrement * this._updateHelperPos._j;
+      for (let j = 0; j < this.helpers!.length; j++) {
+        const lag = this.settings.helperLagBase! + this.helperLagIncrement! * j;
 
-        this.helperPositions[this._updateHelperPos._j] = {
+        this.helperPositions![j] = {
           left:
-            this.helperPositions[this._updateHelperPos._j].left +
-            (this.helperTargets[this._updateHelperPos._j].left -
-              this.helperPositions[this._updateHelperPos._j].left) /
-              this._updateHelperPos._lag,
+            this.helperPositions![j].left +
+            (this.helperTargets![j].left - this.helperPositions![j].left) / lag,
           top:
-            this.helperPositions[this._updateHelperPos._j].top +
-            (this.helperTargets[this._updateHelperPos._j].top -
-              this.helperPositions[this._updateHelperPos._j].top) /
-              this._updateHelperPos._lag,
+            this.helperPositions![j].top +
+            (this.helperTargets![j].top - this.helperPositions![j].top) / lag,
         };
 
-        this.helpers[this._updateHelperPos._j].css(
-          this.helperPositions[this._updateHelperPos._j]
-        );
+        this.helpers![j].css(this.helperPositions![j]);
       }
 
       // Let's do this again on the next frame!
-      this.updateHelperPosFrame = Garnish.requestAnimationFrame(
-        this.updateHelperPosProxy
+      this.updateHelperPosFrame = (Garnish as any).requestAnimationFrame(
+        this.updateHelperPosProxy!
       );
     },
 
     /**
      * Get the helper position for a draggee helper
      */
-    _getHelperTarget: function (index, real) {
+    _getHelperTarget(
+      index: number,
+      real?: boolean
+    ): {left: number; top: number} {
       return {
         left:
-          this.getHelperTargetX(real) + this.settings.helperSpacingX * index,
-        top: this.getHelperTargetY(real) + this.settings.helperSpacingY * index,
+          this.getHelperTargetX(real) + this.settings.helperSpacingX! * index,
+        top:
+          this.getHelperTargetY(real) + this.settings.helperSpacingY! * index,
       };
     },
 
-    _showDraggee: function () {
+    _showDraggee(): void {
       // Remove the helpers
-      for (var i = 0; i < this.helpers.length; i++) {
-        this.helpers[i].remove();
+      for (let i = 0; i < this.helpers!.length; i++) {
+        this.helpers![i].remove();
       }
 
       this.helpers = null;
 
-      this.$draggee.show().css('visibility', '');
+      this.$draggee!.show().css('visibility', '');
 
       this.onReturnHelpersToDraggees();
 
@@ -443,6 +436,6 @@ export default BaseDrag.extend(
       helperSpacingX: 5,
       helperSpacingY: 5,
       onReturnHelpersToDraggees: $.noop,
-    },
+    } as DragSettings,
   }
 );

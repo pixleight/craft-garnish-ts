@@ -1,5 +1,6 @@
-import Garnish from './Garnish.js';
-import Drag from './Drag.js';
+import Garnish from './Garnish';
+import Drag from './Drag';
+import {DragDropInterface, DragDropSettings, JQueryElement} from './types';
 import $ from 'jquery';
 
 /**
@@ -10,18 +11,18 @@ import $ from 'jquery';
  */
 export default Drag.extend(
   {
-    $dropTargets: null,
-    $activeDropTarget: null,
+    $dropTargets: null as JQueryElement | null,
+    $activeDropTarget: null as JQueryElement | null,
 
     /**
      * Constructor
      */
-    init: function (settings) {
+    init: function (settings?: DragDropSettings): void {
       settings = $.extend({}, Garnish.DragDrop.defaults, settings);
       this.base(settings);
     },
 
-    updateDropTargets: function () {
+    updateDropTargets: function (): void {
       if (this.settings.dropTargets) {
         if (typeof this.settings.dropTargets === 'function') {
           this.$dropTargets = $(this.settings.dropTargets());
@@ -39,7 +40,7 @@ export default Drag.extend(
     /**
      * On Drag Start
      */
-    onDragStart: function () {
+    onDragStart: function (): void {
       this.updateDropTargets();
       this.$activeDropTarget = null;
       this.base();
@@ -48,20 +49,16 @@ export default Drag.extend(
     /**
      * On Drag
      */
-    onDrag: function () {
+    onDrag: function (): void {
       if (this.$dropTargets) {
-        this.onDrag._activeDropTarget = null;
+        let activeDropTarget: HTMLElement | null = null;
 
         // is the cursor over any of the drop target?
-        for (
-          this.onDrag._i = 0;
-          this.onDrag._i < this.$dropTargets.length;
-          this.onDrag._i++
-        ) {
-          this.onDrag._elem = this.$dropTargets[this.onDrag._i];
+        for (let i = 0; i < this.$dropTargets.length; i++) {
+          const elem = this.$dropTargets[i];
 
-          if (Garnish.hitTest(this.mouseX, this.mouseY, this.onDrag._elem)) {
-            this.onDrag._activeDropTarget = this.onDrag._elem;
+          if (Garnish.hitTest(this.mouseX, this.mouseY, elem)) {
+            activeDropTarget = elem;
             break;
           }
         }
@@ -69,26 +66,26 @@ export default Drag.extend(
         // has the drop target changed?
         if (
           (this.$activeDropTarget &&
-            this.onDrag._activeDropTarget !== this.$activeDropTarget[0]) ||
-          (!this.$activeDropTarget && this.onDrag._activeDropTarget !== null)
+            activeDropTarget !== this.$activeDropTarget[0]) ||
+          (!this.$activeDropTarget && activeDropTarget !== null)
         ) {
           // was there a previous one?
           if (this.$activeDropTarget) {
             this.$activeDropTarget.removeClass(
-              this.settings.activeDropTargetClass
+              this.settings.activeDropTargetClass!
             );
           }
 
           // remember the new one
-          if (this.onDrag._activeDropTarget) {
-            this.$activeDropTarget = $(this.onDrag._activeDropTarget).addClass(
-              this.settings.activeDropTargetClass
+          if (activeDropTarget) {
+            this.$activeDropTarget = $(activeDropTarget).addClass(
+              this.settings.activeDropTargetClass!
             );
           } else {
             this.$activeDropTarget = null;
           }
 
-          this.settings.onDropTargetChange(this.$activeDropTarget);
+          this.settings.onDropTargetChange!(this.$activeDropTarget);
         }
       }
 
@@ -98,9 +95,11 @@ export default Drag.extend(
     /**
      * On Drag Stop
      */
-    onDragStop: function () {
+    onDragStop: function (): void {
       if (this.$dropTargets && this.$activeDropTarget) {
-        this.$activeDropTarget.removeClass(this.settings.activeDropTargetClass);
+        this.$activeDropTarget.removeClass(
+          this.settings.activeDropTargetClass!
+        );
       }
 
       this.base();
@@ -109,9 +108,9 @@ export default Drag.extend(
     /**
      * Fade Out Helpers
      */
-    fadeOutHelpers: function () {
+    fadeOutHelpers: function (): void {
       for (var i = 0; i < this.helpers.length; i++) {
-        (function ($draggeeHelper) {
+        (function ($draggeeHelper: JQueryElement) {
           $draggeeHelper.velocity('fadeOut', {
             duration: Garnish.FX_DURATION,
             complete: function () {
@@ -121,12 +120,12 @@ export default Drag.extend(
         })(this.helpers[i]);
       }
     },
-  },
+  } as DragDropInterface,
   {
     defaults: {
       dropTargets: null,
       onDropTargetChange: $.noop,
       activeDropTargetClass: 'active',
-    },
+    } as DragDropSettings,
   }
 );

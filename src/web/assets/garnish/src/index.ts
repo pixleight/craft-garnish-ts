@@ -1,4 +1,4 @@
-import Garnish from './Garnish.js';
+import Garnish from './Garnish';
 
 const uiLayerManager = new Garnish.UiLayerManager();
 

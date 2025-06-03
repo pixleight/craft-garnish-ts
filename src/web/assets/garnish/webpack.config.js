@@ -8,12 +8,20 @@ module.exports = getConfig({
   watchPaths: [join(__dirname, 'src')],
   config: {
     entry: {
-      garnish: './index.js',
+      garnish: './index.ts',
+    },
+    resolve: {
+      extensions: ['.ts', '.js'],
     },
     module: {
       rules: [
         {
-          test: require.resolve('./src/index.js'),
+          test: /\.ts$/,
+          use: 'ts-loader',
+          exclude: /node_modules/,
+        },
+        {
+          test: require.resolve('./src/index.ts'),
           loader: 'expose-loader',
           options: {
             exposes: [

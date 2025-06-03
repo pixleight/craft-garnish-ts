@@ -1,11 +1,17 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
 import $ from 'jquery';
+import type {
+  HUDInterface,
+  HUDSettings,
+  JQueryElement,
+  ElementOrJQuery,
+} from './types';
 
 /**
  * HUD
  */
-export default Base.extend(
+export default Base.extend<HUDInterface>(
   {
     $trigger: null,
     $fixedTriggerParent: null,
@@ -37,24 +43,28 @@ export default Base.extend(
      * @param {jQuery|HTMLElement|string} [bodyContents]
      * @param {Object} [settings]
      */
-    init: function (trigger, bodyContents = '', settings = {}) {
+    init(
+      trigger: ElementOrJQuery,
+      bodyContents: string | ElementOrJQuery | Record<string, any> = '',
+      settings: HUDSettings = {}
+    ): void {
       this.$trigger = $(trigger);
 
       if ($.isPlainObject(bodyContents)) {
         // (trigger, settings)
-        settings = bodyContents;
+        settings = bodyContents as HUDSettings;
         bodyContents = '';
       }
 
-      this.setSettings(settings, Garnish.HUD.defaults);
+      this.setSettings(settings, (Garnish as any).HUD.defaults);
       this.on('show', this.settings.onShow);
       this.on('hide', this.settings.onHide);
       this.on('submit', this.settings.onSubmit);
 
       this.$trigger.attr('aria-expanded', 'false');
 
-      if (typeof Garnish.HUD.activeHUDs === 'undefined') {
-        Garnish.HUD.activeHUDs = {};
+      if (typeof (Garnish as any).HUD.activeHUDs === 'undefined') {
+        (Garnish as any).HUD.activeHUDs = {};
       }
 
       if (this.settings.withShade) {
@@ -77,10 +87,10 @@ export default Base.extend(
         this.$mainContainer
       );
 
-      this.updateBody(bodyContents);
+      this.updateBody(bodyContents as string | ElementOrJQuery);
 
       // See if the trigger is fixed
-      var $parent = this.$trigger;
+      let $parent = this.$trigger;
 
       do {
         if ($parent.css('position') === 'fixed') {
@@ -107,10 +117,14 @@ export default Base.extend(
         this.addListener(this.settings.closeBtn, 'activate', 'hide');
       }
 
-      this.addListener(Garnish.$win, 'resize', 'updateSizeAndPosition');
+      this.addListener(
+        (Garnish as any).$win,
+        'resize',
+        'updateSizeAndPosition'
+      );
       if (!this.$fixedTriggerParent) {
         this.addListener(
-          Garnish.$scrollContainer,
+          (Garnish as any).$scrollContainer,
           'scroll',
           'updateSizeAndPosition'
         );
@@ -120,11 +134,15 @@ export default Base.extend(
       }
 
       // When the menu is expanded, tabbing on the trigger should move focus into it
-      this.addListener(this.$trigger, 'keydown', (ev) => {
-        if (ev.keyCode === Garnish.TAB_KEY && !ev.shiftKey && this.showing) {
-          const $focusableElement = Garnish.getKeyboardFocusableElements(
-            this.$hud
-          ).first();
+      this.addListener(this.$trigger, 'keydown', (ev: JQuery.KeyDownEvent) => {
+        if (
+          ev.keyCode === (Garnish as any).TAB_KEY &&
+          !ev.shiftKey &&
+          this.showing
+        ) {
+          const $focusableElement = (Garnish as any)
+            .getKeyboardFocusableElements(this.$hud)
+            .first();
           if ($focusableElement.length) {
             ev.preventDefault();
             $focusableElement.focus();
@@ -133,28 +151,32 @@ export default Base.extend(
       });
 
       // Add listener to manage focus
-      this.addListener(this.$hud, 'keydown', function (event) {
-        const {keyCode} = event;
+      this.addListener(
+        this.$hud,
+        'keydown',
+        function (this: HUDInterface, event: JQuery.KeyDownEvent) {
+          const {keyCode} = event;
 
-        if (keyCode !== Garnish.TAB_KEY) return;
+          if (keyCode !== (Garnish as any).TAB_KEY) return;
 
-        const $focusableElements = Garnish.getKeyboardFocusableElements(
-          this.$hud
-        );
-        const index = $focusableElements.index(event.target);
+          const $focusableElements = (
+            Garnish as any
+          ).getKeyboardFocusableElements(this.$hud);
+          const index = $focusableElements.index(event.target);
 
-        if (index === 0 && event.shiftKey) {
-          event.preventDefault();
-          this.$trigger.focus();
-        } else if (
-          index === $focusableElements.length - 1 &&
-          !event.shiftKey &&
-          this.$nextFocusableElement
-        ) {
-          event.preventDefault();
-          this.$nextFocusableElement.focus();
+          if (index === 0 && event.shiftKey) {
+            event.preventDefault();
+            this.$trigger!.focus();
+          } else if (
+            index === $focusableElements.length - 1 &&
+            !event.shiftKey &&
+            this.$nextFocusableElement
+          ) {
+            event.preventDefault();
+            this.$nextFocusableElement.focus();
+          }
         }
-      });
+      );
 
       if (this.settings.showOnInit) {
         // Hide the HUD until it gets positioned
@@ -162,54 +184,58 @@ export default Base.extend(
         this.show();
         this.$hud.css('opacity', 1);
       } else {
-        this.$hud.appendTo(Garnish.$bod);
+        this.$hud.appendTo((Garnish as any).$bod);
         this.hideContainer();
       }
 
-      Garnish.HUD.instances.push(this);
+      (Garnish as any).HUD.instances.push(this);
     },
 
     /**
      * Update the body contents
      */
-    updateBody: function (bodyContents) {
+    updateBody(bodyContents: string | ElementOrJQuery): void {
       // Cleanup
-      this.$main.html('');
+      this.$main!.html('');
 
       if (this.$header) {
-        this.$hud.removeClass('has-header');
+        this.$hud!.removeClass('has-header');
         this.$header.remove();
         this.$header = null;
       }
 
       if (this.$footer) {
-        this.$hud.removeClass('has-footer');
+        this.$hud!.removeClass('has-footer');
         this.$footer.remove();
         this.$footer = null;
       }
 
       // Append the new body contents
-      this.$main.append(bodyContents);
+      this.$main!.append(bodyContents);
 
       // Look for a header and footer
-      var $header = this.$main.find('.' + this.settings.headerClass + ':first'),
-        $footer = this.$main.find('.' + this.settings.footerClass + ':first');
+      const $header = this.$main!.find(
+        '.' + this.settings.headerClass + ':first'
+      );
+      const $footer = this.$main!.find(
+        '.' + this.settings.footerClass + ':first'
+      );
 
       if ($header.length) {
         this.$header = $header.insertBefore(this.$mainContainer);
-        this.$hud.addClass('has-header');
+        this.$hud!.addClass('has-header');
       }
 
       if ($footer.length) {
         this.$footer = $footer.insertAfter(this.$mainContainer);
-        this.$hud.addClass('has-footer');
+        this.$hud!.addClass('has-footer');
       }
     },
 
     /**
      * Show
      */
-    show: function (ev) {
+    show(ev?: Event): void {
       if (ev && ev.stopPropagation) {
         ev.stopPropagation();
       }
@@ -219,58 +245,62 @@ export default Base.extend(
       }
 
       if (this.settings.closeOtherHUDs) {
-        for (var hudID in Garnish.HUD.activeHUDs) {
-          if (!Garnish.HUD.activeHUDs.hasOwnProperty(hudID)) {
+        for (const hudID in (Garnish as any).HUD.activeHUDs) {
+          if (!(Garnish as any).HUD.activeHUDs.hasOwnProperty(hudID)) {
             continue;
           }
-          Garnish.HUD.activeHUDs[hudID].hide();
+          (Garnish as any).HUD.activeHUDs[hudID].hide();
         }
       }
 
-      // Blur the active element, if there is one, to prenent the page from jumping
+      // Blur the active element, if there is one, to prevent the page from jumping
       if (document.activeElement !== document.body) {
         $(document.activeElement).blur();
       }
 
       // Move it to the end of <body> so it gets the highest sub-z-index
       if (this.settings.withShade) {
-        this.$shade.appendTo(Garnish.$bod);
-        this.$shade.show();
+        this.$shade!.appendTo((Garnish as any).$bod);
+        this.$shade!.show();
       }
 
-      this.$hud.appendTo(Garnish.$bod);
-      this.$trigger.attr('aria-expanded', 'true');
+      this.$hud!.appendTo((Garnish as any).$bod);
+      this.$trigger!.attr('aria-expanded', 'true');
       this.showContainer();
 
       this.showing = true;
-      Garnish.HUD.activeHUDs[this._namespace] = this;
+      (Garnish as any).HUD.activeHUDs[this._namespace] = this;
 
-      Garnish.uiLayerManager.addLayer(this.$hud);
+      (Garnish as any).uiLayerManager.addLayer(this.$hud);
 
       if (this.settings.hideOnEsc) {
-        Garnish.uiLayerManager.registerShortcut(
-          Garnish.ESC_KEY,
+        (Garnish as any).uiLayerManager.registerShortcut(
+          (Garnish as any).ESC_KEY,
           this.hide.bind(this)
         );
       }
 
       // Find the next focusable element in the DOM after the trigger.
       // Shift-tabbing on it should take focus back into the container.
-      const $focusableElements = Garnish.$bod.find(':focusable');
-      const triggerIndex = $focusableElements.index(this.$trigger[0]);
+      const $focusableElements = (Garnish as any).$bod.find(':focusable');
+      const triggerIndex = $focusableElements.index(this.$trigger![0]);
       if (triggerIndex !== -1 && $focusableElements.length > triggerIndex + 1) {
         this.$nextFocusableElement = $focusableElements.eq(triggerIndex + 1);
-        this.addListener(this.$nextFocusableElement, 'keydown', (ev) => {
-          if (ev.keyCode === Garnish.TAB_KEY && ev.shiftKey) {
-            const $focusableElement = Garnish.getKeyboardFocusableElements(
-              this.$hud
-            ).last();
-            if ($focusableElement.length) {
-              ev.preventDefault();
-              $focusableElement.focus();
+        this.addListener(
+          this.$nextFocusableElement,
+          'keydown',
+          (ev: JQuery.KeyDownEvent) => {
+            if (ev.keyCode === (Garnish as any).TAB_KEY && ev.shiftKey) {
+              const $focusableElement = (Garnish as any)
+                .getKeyboardFocusableElements(this.$hud)
+                .last();
+              if ($focusableElement.length) {
+                ev.preventDefault();
+                $focusableElement.focus();
+              }
             }
           }
-        });
+        );
       }
 
       this.onShow();
@@ -278,44 +308,46 @@ export default Base.extend(
 
       if (this.updateRecords()) {
         // Prevent the browser from jumping
-        this.$hud.css('top', Garnish.$scrollContainer.scrollTop());
+        this.$hud!.css('top', (Garnish as any).$scrollContainer.scrollTop());
 
         this.updateSizeAndPosition(true);
       }
     },
 
-    showContainer: function () {
-      this.$hud.show();
+    showContainer(): void {
+      this.$hud!.show();
     },
 
-    onShow: function () {
+    onShow(): void {
       this.trigger('show');
     },
 
-    updateRecords: function () {
+    updateRecords(): boolean {
       let changed = false;
 
       changed =
-        this.windowWidth !== (this.windowWidth = Garnish.$win.width()) ||
-        changed;
+        this.windowWidth !==
+          (this.windowWidth = (Garnish as any).$win.width()) || changed;
       changed =
-        this.windowHeight !== (this.windowHeight = Garnish.$win.height()) ||
-        changed;
+        this.windowHeight !==
+          (this.windowHeight = (Garnish as any).$win.height()) || changed;
       changed =
         this.scrollTop !==
-          (this.scrollTop = Garnish.$scrollContainer.scrollTop()) || changed;
+          (this.scrollTop = (Garnish as any).$scrollContainer.scrollTop()) ||
+        changed;
       changed =
         this.scrollLeft !==
-          (this.scrollLeft = Garnish.$scrollContainer.scrollLeft()) || changed;
-      changed =
-        this.mainWidth !== (this.mainWidth = this.$main.outerWidth()) ||
+          (this.scrollLeft = (Garnish as any).$scrollContainer.scrollLeft()) ||
         changed;
       changed =
-        this.mainHeight !== (this.mainHeight = this.$main.outerHeight()) ||
+        this.mainWidth !== (this.mainWidth = this.$main!.outerWidth()) ||
+        changed;
+      changed =
+        this.mainHeight !== (this.mainHeight = this.$main!.outerHeight()) ||
         changed;
 
-      const $scrollParent = this.$trigger.scrollParent();
-      if ($scrollParent.get(0) !== Garnish.$scrollContainer.get(0)) {
+      const $scrollParent = this.$trigger!.scrollParent();
+      if ($scrollParent.get(0) !== (Garnish as any).$scrollContainer.get(0)) {
         changed =
           this.spWidth !== (this.spWidth = $scrollParent.width()) || changed;
         changed =
@@ -331,41 +363,44 @@ export default Base.extend(
       return changed;
     },
 
-    updateSizeAndPosition: function (force) {
+    updateSizeAndPosition(force?: boolean): void {
       if (
         force === true ||
         (this.updateRecords() && !this.updatingSizeAndPosition)
       ) {
         this.updatingSizeAndPosition = true;
-        Garnish.requestAnimationFrame(
+        (Garnish as any).requestAnimationFrame(
           this.updateSizeAndPositionInternal.bind(this)
         );
       }
     },
 
-    updateSizeAndPositionInternal: function () {
-      var triggerWidth,
-        triggerHeight,
-        triggerOffset,
-        windowScrollLeft,
-        windowScrollTop,
-        scrollContainerTriggerOffset,
-        scrollContainerScrollLeft,
-        scrollContainerScrollTop,
-        hudBodyWidth,
-        hudBodyHeight;
+    updateSizeAndPositionInternal(): void {
+      let triggerWidth: number,
+        triggerHeight: number,
+        triggerOffset: JQuery.Coordinates & {right: number; bottom: number},
+        windowScrollLeft: number,
+        windowScrollTop: number,
+        scrollContainerTriggerOffset: any,
+        scrollContainerScrollLeft: number,
+        scrollContainerScrollTop: number,
+        hudBodyWidth: number,
+        hudBodyHeight: number;
 
       // Get the window sizes and trigger offset
 
-      windowScrollLeft = Garnish.$win.scrollLeft();
-      windowScrollTop = Garnish.$win.scrollTop();
+      windowScrollLeft = (Garnish as any).$win.scrollLeft();
+      windowScrollTop = (Garnish as any).$win.scrollTop();
 
       // Get the trigger's dimensions
-      triggerWidth = this.$trigger.outerWidth();
-      triggerHeight = this.$trigger.outerHeight();
+      triggerWidth = this.$trigger!.outerWidth()!;
+      triggerHeight = this.$trigger!.outerHeight()!;
 
       // Get the offsets for each side of the trigger element
-      triggerOffset = this.$trigger.offset();
+      triggerOffset = this.$trigger!.offset()! as JQuery.Coordinates & {
+        right: number;
+        bottom: number;
+      };
 
       if (this.$fixedTriggerParent) {
         triggerOffset.left -= windowScrollLeft;
@@ -378,10 +413,16 @@ export default Base.extend(
         scrollContainerScrollLeft = 0;
         scrollContainerScrollTop = 0;
       } else {
-        scrollContainerTriggerOffset = Garnish.getOffset(this.$trigger);
+        scrollContainerTriggerOffset = (Garnish as any).getOffset(
+          this.$trigger
+        );
 
-        scrollContainerScrollLeft = Garnish.$scrollContainer.scrollLeft();
-        scrollContainerScrollTop = Garnish.$scrollContainer.scrollTop();
+        scrollContainerScrollLeft = (
+          Garnish as any
+        ).$scrollContainer.scrollLeft();
+        scrollContainerScrollTop = (
+          Garnish as any
+        ).$scrollContainer.scrollTop();
       }
 
       triggerOffset.right = triggerOffset.left + triggerWidth;
@@ -393,30 +434,30 @@ export default Base.extend(
         scrollContainerTriggerOffset.top + triggerHeight;
 
       // Get the HUD dimensions
-      this.$hud.css({
+      this.$hud!.css({
         width: '',
       });
 
-      this.$mainContainer.css({
+      this.$mainContainer!.css({
         height: '',
         'overflow-x': '',
         'overflow-y': '',
       });
 
-      hudBodyWidth = this.$body.width();
-      hudBodyHeight = this.$body.height();
+      hudBodyWidth = this.$body!.width()!;
+      hudBodyHeight = this.$body!.height()!;
 
       // Determine the best orientation for the HUD
 
       // Find the actual available top/right/bottom/left clearances
-      var clearances = {
+      const clearances = {
         bottom:
-          this.windowHeight +
+          this.windowHeight! +
           scrollContainerScrollTop -
           scrollContainerTriggerOffset.bottom,
         top: scrollContainerTriggerOffset.top - scrollContainerScrollTop,
         right:
-          this.windowWidth +
+          this.windowWidth! +
           scrollContainerScrollLeft -
           scrollContainerTriggerOffset.right,
         left: scrollContainerTriggerOffset.left - scrollContainerScrollLeft,
@@ -425,16 +466,16 @@ export default Base.extend(
       // Find the first position that has enough room
       this.orientation = null;
 
-      for (var i = 0; i < this.settings.orientations.length; i++) {
-        var orientation = this.settings.orientations[i],
-          relevantSize =
-            orientation === 'top' || orientation === 'bottom'
-              ? hudBodyHeight
-              : hudBodyWidth;
+      for (let i = 0; i < this.settings.orientations!.length; i++) {
+        const orientation = this.settings.orientations![i];
+        const relevantSize =
+          orientation === 'top' || orientation === 'bottom'
+            ? hudBodyHeight
+            : hudBodyWidth;
 
         if (
-          clearances[orientation] -
-            (this.settings.windowSpacing + this.settings.triggerSpacing) >=
+          clearances[orientation as keyof typeof clearances] -
+            (this.settings.windowSpacing! + this.settings.triggerSpacing!) >=
           relevantSize
         ) {
           // This is the first orientation that has enough room in order of preference, so we'll go with this
@@ -444,7 +485,8 @@ export default Base.extend(
 
         if (
           !this.orientation ||
-          clearances[orientation] > clearances[this.orientation]
+          clearances[orientation as keyof typeof clearances] >
+            clearances[this.orientation as keyof typeof clearances]
         ) {
           // Use this as a fallback as it's the orientation with the most clearance so far
           this.orientation = orientation;
@@ -461,106 +503,109 @@ export default Base.extend(
 
       // Update the tip class
       if (this.tipClass) {
-        this.$tip.removeClass(this.tipClass);
+        this.$tip!.removeClass(this.tipClass);
       }
 
       this.tipClass =
-        this.settings.tipClass + '-' + Garnish.HUD.tipClasses[this.orientation];
-      this.$tip.addClass(this.tipClass);
+        this.settings.tipClass +
+        '-' +
+        (Garnish as any).HUD.tipClasses[this.orientation];
+      this.$tip!.addClass(this.tipClass);
 
       // Make sure the HUD body is within the allowed size
 
-      var maxHudBodyWidth, maxHudBodyHeight;
+      let maxHudBodyWidth: number, maxHudBodyHeight: number;
 
       if (this.orientation === 'top' || this.orientation === 'bottom') {
-        maxHudBodyWidth = this.windowWidth - this.settings.windowSpacing * 2;
+        maxHudBodyWidth = this.windowWidth! - this.settings.windowSpacing! * 2;
         maxHudBodyHeight =
-          clearances[this.orientation] -
-          this.settings.windowSpacing -
-          this.settings.triggerSpacing;
+          clearances[this.orientation as keyof typeof clearances] -
+          this.settings.windowSpacing! -
+          this.settings.triggerSpacing!;
       } else {
         maxHudBodyWidth =
-          clearances[this.orientation] -
-          this.settings.windowSpacing -
-          this.settings.triggerSpacing;
-        maxHudBodyHeight = this.windowHeight - this.settings.windowSpacing * 2;
+          clearances[this.orientation as keyof typeof clearances] -
+          this.settings.windowSpacing! -
+          this.settings.triggerSpacing!;
+        maxHudBodyHeight =
+          this.windowHeight! - this.settings.windowSpacing! * 2;
       }
 
-      if (maxHudBodyWidth < this.settings.minBodyWidth) {
-        maxHudBodyWidth = this.settings.minBodyWidth;
+      if (maxHudBodyWidth < this.settings.minBodyWidth!) {
+        maxHudBodyWidth = this.settings.minBodyWidth!;
       }
 
-      if (maxHudBodyHeight < this.settings.minBodyHeight) {
-        maxHudBodyHeight = this.settings.minBodyHeight;
+      if (maxHudBodyHeight < this.settings.minBodyHeight!) {
+        maxHudBodyHeight = this.settings.minBodyHeight!;
       }
 
       if (
         hudBodyWidth > maxHudBodyWidth ||
-        hudBodyWidth < this.settings.minBodyWidth
+        hudBodyWidth < this.settings.minBodyWidth!
       ) {
         if (hudBodyWidth > maxHudBodyWidth) {
           hudBodyWidth = maxHudBodyWidth;
         } else {
-          hudBodyWidth = this.settings.minBodyWidth;
+          hudBodyWidth = this.settings.minBodyWidth!;
         }
 
-        this.$hud.width(hudBodyWidth);
+        this.$hud!.width(hudBodyWidth);
 
         // Is there any overflow now?
-        if (this.mainWidth > maxHudBodyWidth) {
-          this.$mainContainer.css('overflow-x', 'scroll');
+        if (this.mainWidth! > maxHudBodyWidth) {
+          this.$mainContainer!.css('overflow-x', 'scroll');
         }
 
         // The height may have just changed
-        hudBodyHeight = this.$body.height();
+        hudBodyHeight = this.$body!.height()!;
       }
 
       if (
         hudBodyHeight > maxHudBodyHeight ||
-        hudBodyHeight < this.settings.minBodyHeight
+        hudBodyHeight < this.settings.minBodyHeight!
       ) {
         if (hudBodyHeight > maxHudBodyHeight) {
           hudBodyHeight = maxHudBodyHeight;
         } else {
-          hudBodyHeight = this.settings.minBodyHeight;
+          hudBodyHeight = this.settings.minBodyHeight!;
         }
 
-        var mainHeight = hudBodyHeight;
+        let mainHeight = hudBodyHeight;
 
         if (this.$header) {
-          mainHeight -= this.$header.outerHeight();
+          mainHeight -= this.$header.outerHeight()!;
         }
 
         if (this.$footer) {
-          mainHeight -= this.$footer.outerHeight();
+          mainHeight -= this.$footer.outerHeight()!;
         }
 
-        this.$mainContainer.height(mainHeight);
+        this.$mainContainer!.height(mainHeight);
 
         // Is there any overflow now?
-        if (this.mainHeight > mainHeight) {
-          this.$mainContainer.css('overflow-y', 'scroll');
+        if (this.mainHeight! > mainHeight) {
+          this.$mainContainer!.css('overflow-y', 'scroll');
         }
       }
 
       // Set the HUD/tip positions
-      let triggerCenter, left, top;
+      let triggerCenter: number, left: number, top: number;
 
-      this.$hud.css({
+      this.$hud!.css({
         'border-top-left-radius': '',
         'border-top-right-radius': '',
-        'boredr-bottom-right-radius': '',
+        'border-bottom-right-radius': '',
         'border-bottom-left-radius': '',
       });
-      const borderRadius = parseInt(this.$hud.css('border-radius'));
+      const borderRadius = parseInt(this.$hud!.css('border-radius'));
 
       if (this.orientation === 'top' || this.orientation === 'bottom') {
         // Center the HUD horizontally
-        var maxLeft =
-          this.windowWidth +
+        const maxLeft =
+          this.windowWidth! +
           windowScrollLeft -
-          (hudBodyWidth + this.settings.windowSpacing);
-        var minLeft = windowScrollLeft + this.settings.windowSpacing;
+          (hudBodyWidth + this.settings.windowSpacing!);
+        const minLeft = windowScrollLeft + this.settings.windowSpacing!;
         triggerCenter = triggerOffset.left + Math.round(triggerWidth / 2);
         left = triggerCenter - Math.round(hudBodyWidth / 2);
 
@@ -571,40 +616,40 @@ export default Base.extend(
           left = minLeft;
         }
 
-        this.$hud.css('left', left);
+        this.$hud!.css('left', left);
 
-        const tipLeft = Garnish.within(
-          triggerCenter - left - this.settings.tipWidth / 2,
+        const tipLeft = (Garnish as any).within(
+          triggerCenter - left - this.settings.tipWidth! / 2,
           0,
-          hudBodyWidth - this.settings.tipWidth
+          hudBodyWidth - this.settings.tipWidth!
         );
-        this.$tip.css({left: tipLeft, top: ''});
+        this.$tip!.css({left: tipLeft, top: ''});
 
         if (this.orientation === 'top') {
           top =
-            triggerOffset.top - (hudBodyHeight + this.settings.triggerSpacing);
-          this.$hud.css('top', top);
+            triggerOffset.top - (hudBodyHeight + this.settings.triggerSpacing!);
+          this.$hud!.css('top', top);
         } else {
-          top = triggerOffset.bottom + this.settings.triggerSpacing;
-          this.$hud.css('top', top);
+          top = triggerOffset.bottom + this.settings.triggerSpacing!;
+          this.$hud!.css('top', top);
         }
 
         const adjustRadius = this.orientation === 'top' ? 'bottom' : 'top';
         if (tipLeft < borderRadius) {
-          this.$hud.css(`border-${adjustRadius}-left-radius`, 2);
+          this.$hud!.css(`border-${adjustRadius}-left-radius`, 2);
         } else if (
           tipLeft >
-          hudBodyWidth - borderRadius - this.settings.tipWidth
+          hudBodyWidth - borderRadius - this.settings.tipWidth!
         ) {
-          this.$hud.css(`border-${adjustRadius}-right-radius`, 2);
+          this.$hud!.css(`border-${adjustRadius}-right-radius`, 2);
         }
       } else {
         // Center the HUD vertically
-        var maxTop =
-          this.windowHeight +
+        const maxTop =
+          this.windowHeight! +
           windowScrollTop -
-          (hudBodyHeight + this.settings.windowSpacing);
-        var minTop = windowScrollTop + this.settings.windowSpacing;
+          (hudBodyHeight + this.settings.windowSpacing!);
+        const minTop = windowScrollTop + this.settings.windowSpacing!;
         triggerCenter = triggerOffset.top + Math.round(triggerHeight / 2);
         top = triggerCenter - Math.round(hudBodyHeight / 2);
 
@@ -615,32 +660,32 @@ export default Base.extend(
           top = minTop;
         }
 
-        this.$hud.css('top', top);
+        this.$hud!.css('top', top);
 
-        const tipTop = Garnish.within(
-          triggerCenter - top - this.settings.tipWidth / 2,
+        const tipTop = (Garnish as any).within(
+          triggerCenter - top - this.settings.tipWidth! / 2,
           0,
-          hudBodyHeight - this.settings.tipWidth
+          hudBodyHeight - this.settings.tipWidth!
         );
-        this.$tip.css({top: tipTop, left: ''});
+        this.$tip!.css({top: tipTop, left: ''});
 
         if (this.orientation === 'left') {
           left =
-            triggerOffset.left - (hudBodyWidth + this.settings.triggerSpacing);
-          this.$hud.css('left', left);
+            triggerOffset.left - (hudBodyWidth + this.settings.triggerSpacing!);
+          this.$hud!.css('left', left);
         } else {
-          left = triggerOffset.right + this.settings.triggerSpacing;
-          this.$hud.css('left', left);
+          left = triggerOffset.right + this.settings.triggerSpacing!;
+          this.$hud!.css('left', left);
         }
 
         const adjustRadius = this.orientation === 'left' ? 'right' : 'left';
         if (tipTop < borderRadius) {
-          this.$hud.css(`border-top-${adjustRadius}-radius`, 2);
+          this.$hud!.css(`border-top-${adjustRadius}-radius`, 2);
         } else if (
           tipTop >
-          hudBodyHeight - borderRadius - this.settings.tipWidth
+          hudBodyHeight - borderRadius - this.settings.tipWidth!
         ) {
-          this.$hud.css(`border-bottom-${adjustRadius}-radius`, 2);
+          this.$hud!.css(`border-bottom-${adjustRadius}-radius`, 2);
         }
       }
 
@@ -651,25 +696,25 @@ export default Base.extend(
     /**
      * Hide
      */
-    hide: function () {
+    hide(): void {
       if (!this.showing) {
         return;
       }
 
       this.disable();
-      this.$trigger.attr('aria-expanded', 'false');
+      this.$trigger!.attr('aria-expanded', 'false');
       this.hideContainer();
 
       if (this.settings.withShade) {
-        this.$shade.hide();
+        this.$shade!.hide();
       }
 
       this.showing = false;
-      delete Garnish.HUD.activeHUDs[this._namespace];
-      Garnish.uiLayerManager.removeLayer();
+      delete (Garnish as any).HUD.activeHUDs[this._namespace];
+      (Garnish as any).uiLayerManager.removeLayer();
 
-      if (Garnish.focusIsInside(this.$hud)) {
-        this.$trigger.focus();
+      if ((Garnish as any).focusIsInside(this.$hud)) {
+        this.$trigger!.focus();
       }
 
       if (this.$nextFocusableElement) {
@@ -680,15 +725,15 @@ export default Base.extend(
       this.onHide();
     },
 
-    hideContainer: function () {
-      this.$hud.hide();
+    hideContainer(): void {
+      this.$hud!.hide();
     },
 
-    onHide: function () {
+    onHide(): void {
       this.trigger('hide');
     },
 
-    toggle: function () {
+    toggle(): void {
       if (this.showing) {
         this.hide();
       } else {
@@ -696,15 +741,15 @@ export default Base.extend(
       }
     },
 
-    submit: function () {
+    submit(): void {
       this.onSubmit();
     },
 
-    onSubmit: function () {
+    onSubmit(): void {
       this.trigger('submit');
     },
 
-    _handleSubmit: function (ev) {
+    _handleSubmit(ev: JQuery.SubmitEvent): void {
       ev.preventDefault();
       this.submit();
     },
@@ -712,7 +757,7 @@ export default Base.extend(
     /**
      * Destroy
      */
-    destroy: function () {
+    destroy(): void {
       if (this.$hud) {
         this.$hud.remove();
       }
@@ -721,7 +766,9 @@ export default Base.extend(
         this.$shade.remove();
       }
 
-      Garnish.HUD.instances = Garnish.HUD.instances.filter((o) => o !== this);
+      (Garnish as any).HUD.instances = (Garnish as any).HUD.instances.filter(
+        (o: any) => o !== this
+      );
 
       this.base();
     },
@@ -754,11 +801,11 @@ export default Base.extend(
       closeOtherHUDs: true,
       hideOnEsc: true,
       hideOnShadeClick: true,
-    },
+    } as HUDSettings,
 
     /**
      * @type {Garnish.HUD[]}
      */
-    instances: [],
+    instances: [] as HUDInterface[],
   }
 );

@@ -1,6 +1,16 @@
-import Garnish from './Garnish.js';
-import Base from './Base.js';
+import Garnish from './Garnish';
+import Base from './Base';
 import $ from 'jquery';
+
+interface CheckboxSelectInterface {
+  $container: JQuery | null;
+  $all: JQuery | null;
+  $options: JQuery | null;
+
+  init(container: HTMLElement | JQuery): void;
+  onAllChange(): void;
+  destroy(): void;
+}
 
 /**
  * Checkbox select class
@@ -10,7 +20,10 @@ export default Base.extend({
   $all: null,
   $options: null,
 
-  init: function (container) {
+  init: function (
+    this: CheckboxSelectInterface,
+    container: HTMLElement | JQuery
+  ): void {
     this.$container = $(container);
 
     // Is this already a checkbox select?
@@ -21,17 +34,17 @@ export default Base.extend({
 
     this.$container.data('checkboxSelect', this);
 
-    var $checkboxes = this.$container.find('input');
+    const $checkboxes = this.$container.find('input');
     this.$all = $checkboxes.filter('.all:first');
     this.$options = $checkboxes.not(this.$all);
 
     this.addListener(this.$all, 'change', 'onAllChange');
   },
 
-  onAllChange: function () {
-    var isAllChecked = this.$all.prop('checked');
+  onAllChange: function (this: CheckboxSelectInterface): void {
+    const isAllChecked = this.$all!.prop('checked');
 
-    this.$options.prop({
+    this.$options!.prop({
       checked: isAllChecked,
       disabled: isAllChecked,
     });
@@ -40,8 +53,8 @@ export default Base.extend({
   /**
    * Destroy
    */
-  destroy: function () {
-    this.$container.removeData('checkboxSelect');
+  destroy: function (this: CheckboxSelectInterface): void {
+    this.$container!.removeData('checkboxSelect');
     this.base();
   },
 });
